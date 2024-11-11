@@ -1,15 +1,13 @@
 #include "bw_lat_mem_ctrl.h"
 
 
-BwLatMemCtrl::BwLatMemCtrl(string _curveAddress, uint32_t _curveWindowSize, double _MaxTheoreticalBW, double frequencyRate) 
+BwLatMemCtrl::BwLatMemCtrl(string _curveAddress, uint32_t _curveWindowSize, double frequencyRate) 
 {
 	curveAddress = _curveAddress;
 	curveWindowSize = _curveWindowSize;
 
 	frequencyCPU = frequencyRate;
 
-	// change the bandwidth to access per cycles (double checked)
-	MaxTheoreticalBW =  (_MaxTheoreticalBW  / 64) / 2.1;
 
 	leadOffLatency = 100000;
 	maxBandwidth = 0;
@@ -18,14 +16,13 @@ BwLatMemCtrl::BwLatMemCtrl(string _curveAddress, uint32_t _curveWindowSize, doub
 	for (uint32_t i=0; i<101; i+=2) {
 		string fileAddress;
 		ifstream curveFiles;
+
 		double inputBandwidth, inputLatency; 
 
 		// generate the address of the files
-		if (i<10)
-			fileAddress = curveAddress + "/bwlat_" + to_string(i) + ".txt";
-		else
-			fileAddress = curveAddress + "/bwlat_" + to_string(i) + ".txt";
+		fileAddress = curveAddress + "/bwlat_" + to_string(i) + ".txt";
 		
+		// test to make sure we are reading correct files.
 		// cout << fileAddress << endl;
 
 		curveFiles.open(fileAddress, std::ifstream::in);
@@ -81,7 +78,6 @@ BwLatMemCtrl::BwLatMemCtrl(string _curveAddress, uint32_t _curveWindowSize, doub
 	// cout << "leadOffLatency: " << (leadOffLatency + 51) / 2.1 << " ns, cycles: " << (leadOffLatency + 51) << endl;
 	// cout << "maxLatency: " << (maxLatency + 51) / 2.1 << " ns"<< endl;
 	// cout << "maxBandwidth: " << maxBandwidth * 64  * 2.1 << " GB/s" << endl;
-	// cout << "MaxTheoreticalBW: " << MaxTheoreticalBW * 64 * 2.1 << " GB/s" << endl;
 
 	// test to see if the data is loaded correctly.
 	// for (uint32_t i=0; i< curves_data.size(); i++)
@@ -152,7 +148,6 @@ uint32_t BwLatMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPerc
 	// TODO...
 	// sanity check should be added later
 	// cout << endl << "new" << endl;
-	// cout << "MaxTheoreticalBW: " << MaxTheoreticalBW  << " acesses/cycles" << endl;
 	// cout << "maxBandwidth in all the curves : " << maxBandwidth  << " acesses/cycles" << endl;
 	// cout << "measured bandwidth: " << bandwidth << " max from curve: "<< maxBandwidthPerRdRatio[curveDataIndex] << endl;
 	// cout << "rd percentage: " << intReadPercentage << endl;
@@ -166,7 +161,6 @@ uint32_t BwLatMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPerc
 
 	// check if we overflow the maximum bandwidth. We need to add latency penaly for very high bandwidth applications
 	// bool overflow=false;
-	// if (MaxTheoreticalBW < bandwidth) {
 	// if (maxBandwidth < bandwidth) {	
 	if (maxBandwidthPerRdRatio[curveDataIndex]*0.99 < bandwidth) {
 		
@@ -307,15 +301,6 @@ void BwLatMemCtrl::updateLatency(uint64_t currentWindowEndCyclen) {
 
 uint64_t BwLatMemCtrl::access(uint64_t accessCycle, bool isWrite) {
 	
-	// bool isWrite;
-	// if(req.type == PUTS) {
-	// 	// clean write should not go to memory
-	// 	*req.state = I;
-	// 	return req.cycle + 1;
-	// }
-
-
-
 
     // start cycle of our measuremnt window
     if (currentWindowAccessCount==0) {
@@ -343,36 +328,6 @@ uint64_t BwLatMemCtrl::access(uint64_t accessCycle, bool isWrite) {
     	currentWindowAccessCount_rd = 0; // reset the access as we enter a new window
     }
 
-
-	// switch (req.type) {
-    //     case PUTS:
-    //     case PUTX:
-    //         *req.state = I;
-    //         break;
-    //     case GETS:
-    //         *req.state = req.is(MemReq::NOEXCL)? S : E;
-    //         break;
-    //     case GETX:
-    //         *req.state = M;
-    //         break;
-
-    //     default: panic("!?");
-    // }
-
-    // uint64_t respCycle = req.cycle + (uint64_t)latency;
-
-    // profile access latency
-    // if (isWrite)
-    // {
-    // 	profWrites.inc();
-    // 	profTotalWrLat.inc(latency);
-    // }
-    // else {
-    // 	profReads.inc();
-    // 	profTotalRdLat.inc(latency);
-    // }
-    // sanity check
-    // assert(respCycle > req.cycle);
 
     // devide freq by 2.1 to get ns then translate to clock frequency
     return (uint64_t) (frequencyCPU*latency/2.1);

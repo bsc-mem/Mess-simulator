@@ -21,9 +21,8 @@ class BwLatMemCtrl {
 
 
 		double leadOffLatency, maxBandwidth, maxLatency;
-		// maximum theoritical bandwidth. We should get this from config file later 
-		// or we can remove it at the end. it is good for debugging but no use in our memory model
-		double MaxTheoreticalBW;
+		double onChipLatency;
+
 
 		// we need this two numbers to define a PID-like controller to converge smoothly.
 		double lastEstimatedBandwidth;
@@ -79,7 +78,7 @@ class BwLatMemCtrl {
 
 
 	public:
-		BwLatMemCtrl(string curveAddress, uint32_t curveWindowSize, double MaxTheoreticalBW, double frequencyRate);
+		BwLatMemCtrl(string curveAddress, uint32_t curveWindowSize, double frequencyRate);
 		uint64_t access(uint64_t accessCycle, bool isWrite);
 		// for ensuring the quality of service of memory system 
 		uint64_t GetQsMemLoadCycleLimit();
