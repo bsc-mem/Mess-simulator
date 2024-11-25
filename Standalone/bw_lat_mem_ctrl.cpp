@@ -1,18 +1,21 @@
 #include "bw_lat_mem_ctrl.h"
 
 
-BwLatMemCtrl::BwLatMemCtrl(string _curveAddress, uint32_t _curveWindowSize, double frequencyRate) 
+BwLatMemCtrl::BwLatMemCtrl(string _curveAddress, double _curveFrequency, uint32_t _curveWindowSize, double frequencyRate, double _onCoreLatency) 
 {
 	curveAddress = _curveAddress;
 	curveWindowSize = _curveWindowSize;
 
 	frequencyCPU = frequencyRate;
+	onCoreLatency = _onCoreLatency;
 
-
+	// initialize with non null values
 	leadOffLatency = 100000;
 	maxBandwidth = 0;
 	maxLatency = 0;
-	// curves_data
+
+	// curves_data 
+	// 101 different read percentage curves: 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, ..., 100 
 	for (uint32_t i=0; i<101; i+=2) {
 		string fileAddress;
 		ifstream curveFiles;
@@ -23,34 +26,35 @@ BwLatMemCtrl::BwLatMemCtrl(string _curveAddress, uint32_t _curveWindowSize, doub
 		fileAddress = curveAddress + "/bwlat_" + to_string(i) + ".txt";
 		
 		// test to make sure we are reading correct files.
-		// cout << fileAddress << endl;
+		// cout << fileAddress << endl; 
 
 		curveFiles.open(fileAddress, std::ifstream::in);
 
-		// read the curve file into the curves_date
-		// also set leadOffLatency, maxBandwidth, maxLatency
+		// read the curve file into the curves_date 
+		// also set leadOffLatency, maxBandwidth, maxLatency 
 		
-
-
+		vector<vector<double>> curve_data;
 		double maxBandwidthTemp = 0;
 		double maxLatencyTemp = 0;
 
-		vector<vector<double>> curve_data;
 		while(curveFiles >> inputBandwidth >> inputLatency) {
 			vector<double> dataPoint;
-			// change the bandwidth to access per cycles
-			// this is hard coded for skylake it should read the config frecuency
-			inputBandwidth = (inputBandwidth / 64) / (2.1*1000)  ;
+
+			// curves BW values are in MB/s. we need to change it to accesses per cycles. 
+			// we consider each access is 64 bytes. Otherwise this needs to be updated. 
+			inputBandwidth = (inputBandwidth / 64) / (frequencyCPU*1000)  ;
+
 			// decrease LLC latency; this is hard coded for skylake. it should read all parent 
 			// cache latency and sum them at the end. for Skylake this value is 37 (L3) + 10 (L2) + 4 (L1) = 51
-			// we need this 12 more offset. idk why to achieve correct lead-off latency
 			
-			// this is for skylake+DDR$
-			// inputLatency = inputLatency - 51 - 12;
-			
-			// this is for skylake+CXL (still we are 152 ns lead of. 36 ns more!)
-			// inputLatency = inputLatency;
+			// inputLatency from curves is in cycles based on the freuquency of the cuve data. 
+			// we need to convert it to the cycles of the CPU simulator. 
+			inputLatency = inputLatency * (frequencyCPU / _curveFrequency);
 
+			// onCoreLatency= 0 --> this is for skylake+CXL (CXL curves are from the CXL Host to memory not from the core to memory. so we do not need to deacrease the latency)
+			// onCoreLatency=51 --> this is for skylake+DDR4, Graviton+DDR5 and Fujitsu+HBM2 (curves are from core to main memory)
+			inputLatency = inputLatency - onCoreLatency; 
+						
 			dataPoint.push_back(inputBandwidth);
 			dataPoint.push_back(inputLatency);			
 			// cout << dataPoint[0] << " " << dataPoint[1] << endl;
@@ -66,9 +70,9 @@ BwLatMemCtrl::BwLatMemCtrl(string _curveAddress, uint32_t _curveWindowSize, doub
 			if (maxBandwidthTemp < inputBandwidth)
 				maxBandwidthTemp = inputBandwidth;
 
-
 			curve_data.push_back(dataPoint);
 		}
+
 		maxBandwidthPerRdRatio.push_back(maxBandwidthTemp);
 		maxLatencyPerRdRatio.push_back(maxLatencyTemp); 
 		curves_data.push_back(curve_data);
@@ -89,15 +93,6 @@ BwLatMemCtrl::BwLatMemCtrl(string _curveAddress, uint32_t _curveWindowSize, doub
 	// 	}
 	// }
 
-	// cout << "maxBandwidth: " << endl;
-	// for (uint32_t j = 0; j < maxBandwidthPerRdRatio.size(); ++j) {
-	// 	cout << maxBandwidthPerRdRatio[j] << endl;
-	// }
-
-	// cout << "maxlatency: " << endl;
-	// for (uint32_t j = 0; j < maxLatencyPerRdRatio.size(); ++j) {
-	// 	cout << maxLatencyPerRdRatio[j] << endl;
-	// }
 
 	// initialization of the counters
 	currentWindowAccessCount = 0;
@@ -123,13 +118,14 @@ double round(double d) {
 	return std::floor(d + 0.5);
 }
 
+
 uint32_t BwLatMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPercentage) {
 
 	double convergeSpeed = 0.05;
 	// factor of latency over max latency when the bandwidth is maxed out.
 	
 
-	// curves_data
+	// curves_data 
 	// first select the correct read to write ratio. an even number between 0 and 100
 	uint32_t intReadPercentage;
 	intReadPercentage = round( (100*readPercentage) * 0.5f ) * 2;
@@ -155,7 +151,9 @@ uint32_t BwLatMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPerc
 	// cout << "lastEstimatedLatency " << lastEstimatedLatency << endl;
 	// cout << "lastEstimatedBandwidth: " << lastEstimatedBandwidth << endl;
 
-	// do not jump. slowly converge. PID-like controller 
+	// do not jump. slowly converge. PID-like controller
+	// Simple explanation: weithted average of the last estimated value and the new value.
+	// complicated explanation: this equation represent integral operation in descrete domain for PID controller. 
 	bandwidth = convergeSpeed * bandwidth + (1-convergeSpeed) * lastEstimatedBandwidth;
 
 
@@ -223,7 +221,7 @@ uint32_t BwLatMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPerc
 	if(j==curves_data[curveDataIndex].size())
 		j--;
 
-	if (j!=0) {
+	if (j!=0) { // we are not at the first point (highest bandwidth)
 
 		// for easier readability
 		double x1 = curves_data[curveDataIndex][j][0];
@@ -245,8 +243,8 @@ uint32_t BwLatMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPerc
 
 		finalLatency = convergeSpeed * finalLatency + (1-convergeSpeed) * lastEstimatedLatency;
 		
-		// decrease overflow factor if we are not in that mood
-		if (overflowFactor>0.01) // never let the overflowFactor to overflow
+		// decrease overflow factor if we are not in the overflow mode anymore 
+		if (overflowFactor>0.01) // never let the overflowFactor to become negative otherwise it will be a disaster
 			overflowFactor = overflowFactor - 0.01;		
 	}
 	else {
@@ -254,7 +252,7 @@ uint32_t BwLatMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPerc
 		finalLatency += overflowFactor*finalLatency;
 		finalLatency = convergeSpeed * finalLatency + (1-convergeSpeed) * lastEstimatedLatency;
 		
-		// decrease overflow factor if we are not in that mood
+		// decrease overflow factor if we are not in overflow mode
 		if (overflowFactor>0.01) // never let the overflowFactor to overflow
 			overflowFactor = overflowFactor - 0.01;
 		// never let the overflowFactor to overflow
@@ -329,8 +327,8 @@ uint64_t BwLatMemCtrl::access(uint64_t accessCycle, bool isWrite) {
     }
 
 
-    // devide freq by 2.1 to get ns then translate to clock frequency
-    return (uint64_t) (frequencyCPU*latency/2.1);
+    // return the latency based on cycles (CPU frequency)
+    return (uint64_t) (latency);
 }
 
 uint64_t BwLatMemCtrl::GetQsMemLoadCycleLimit() {
