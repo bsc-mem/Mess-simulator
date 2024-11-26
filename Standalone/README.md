@@ -120,5 +120,4 @@ As observed, latency increases when the bandwidth exceeds the maximum bandwidth 
 
 ## Suggestions
 
-We can change the Pause values, input curve values and look at the final reported latency and BW to understand better  how Mess simulator works. In all these experiment, we only test 100% read workload. If one wants in the main file it can change the issue accesses to also inlcudes writes. If you decide to integrate the Mess simulator into your CPU simulator, please do not hessitate to send me an email. I will be more than glad to help. 
-
+We can modify the pause values and input curve values, then observe the final reported latency and bandwidth to gain a better understanding of how the Mess simulator works. In all these experiments, we test only a 100% read workload. However, in the main file, you can modify the issued accesses to include writes as well. If you decide to integrate the Mess simulator into your CPU simulator, please feel free to email me—I would be more than happy to assist.
