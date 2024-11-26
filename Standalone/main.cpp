@@ -13,15 +13,15 @@ uint64_t loopSize = 1200000;
 uint64_t innteLoopSize = 10;
 
 // each tick is a cycle. This is for test. 
-// with this fucntion, we can vary the issue rate and hence the bandwidth by changing the intensity
-uint64_t tick(uint64_t cycle, uint64_t intensity)
+// with this fucntion, we can vary the issue rate and hence the bandwidth by changing the pause
+uint64_t tick(uint64_t cycle, uint64_t pause)
 {
-	return cycle + intensity;
+	return cycle + pause;
 }
 
 // print usage
 void print_usage() {
-	cout << "Usage: ./main <address> <intensity> <frequencyCPU> <frequencyCurve> <onChipLatency>" << endl;
+	cout << "Usage: ./main <address> <pause> <frequencyCPU> <frequencyCurve> <onChipLatency>" << endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -33,13 +33,13 @@ int main(int argc, char* argv[]) {
 	}
 
 	string myAddress = argv[1];
-	int intensity = atoi(argv[2]);
+	int pause = atoi(argv[2]);
 	float frequencyCPU = atof(argv[3]);
 	float frequencyCurve = atof(argv[4]);
 	float onChipLatency = atof(argv[5]);
 
 	// sanity check
-	if (intensity < 0) {
+	if (pause < 0) {
 		print_usage();
 		return 1;
 	}
@@ -60,20 +60,20 @@ int main(int argc, char* argv[]) {
 	// issue some writes
 	// for (int i = 0; i < 1200; ++i) {
 	// 	bwLatMemCtrl->access(cycle, 1);
-	// 	cycle = tick(cycle, intensity);
+	// 	cycle = tick(cycle, pause);
 	// }
 
 	// issue some reads
 	for (int i = 0; i < loopSize; ++i) {
 		for ( int j=0; j<innteLoopSize ; j++)
 			lat = bwLatMemCtrl->access(cycle, 0); 
-		cycle = tick(cycle, intensity);
+		cycle = tick(cycle, pause);
 	}
 
 	
-	if(intensity!=0) {
+	if(pause!=0) {
 		cout << fixed << setprecision(2);
-		cout << lat/frequencyCPU << ", " <<  innteLoopSize*frequencyCPU*64/(intensity) << " GB/s" << endl;
+		cout << lat/frequencyCPU << ", " <<  innteLoopSize*frequencyCPU*64/(pause) << " GB/s" << endl;
 	}
 
 	delete bwLatMemCtrl; 
