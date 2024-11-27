@@ -4,7 +4,7 @@
   [1. Overview](#1-overview) \
   [2. Directory Breakdown](#2-directory-breakdown) \
   [3. Build and Run](#3-build-and-run) \
-  [4. Simulation Guide](#4-simulation-guide)
+  [4. Simulation Guide](#4-simulation-guide) \
   [5. Example Outputs](#5-example-outputs) 
 
 ---
