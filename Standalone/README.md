@@ -1,123 +1,192 @@
-# Mess-simulator standalone version
+# Mess-Simulator: Standalone Version
 
-This is the standalone version of the Mess simulator. It is developed to provide an easy approach to understand how Mess simulator works. Before integrating the mess simulator into any CPU simulator, it is advised to understand this version well. 
+## Contents
+  [1. Overview](#1-overview) \
+  [2. Directory Breakdown](#2-directory-breakdown) \
+  [3. Build and Run](#3-build-and-run) \
+  [4. Simulation Guide](#4-simulation-guide)
+  [5. Example Outputs](#5-example-outputs) 
+
+---
+
+## 1. Overview
+
+### What is the Standalone Simulator?
+The standalone simulator is a core component of the <strong>Mess Framework</strong>, a comprehensive solution for memory system benchmarking, simulation, and application profiling. Positioned within the <strong>Mess Simulation</strong> layer of the framework, the standalone simulator offers a streamlined and focused environment to explore the simulator’s fundamental capabilities without the complexity of full system integration.
+
+<p align="center"><img src="../figures/standalone_diagram.png" width="80%" height="80%"></p>
+<p align="center"><i>Figure 1: Overview of the Mess Framework. The standalone simulator fits into the simulation layer, leveraging pre-characterized bandwidth-latency curves.</i></p>
+
+This version is ideal for users who want to deeply understand how the Mess simulator models memory performance. It serves as both a learning tool and a foundational step for integrating the simulator into larger CPU or system simulators.
+
+#### Key Features
+- Functions independently of full-system simulators, enabling focused exploration of memory performance.
+- Supports multiple cutting-edge memory technologies, including DDR4, DDR5, HBM2, and CXL.
+- Relies on pre-characterized bandwidth-latency curves to model memory system behavior under diverse conditions.
+- Provides a straightforward interface for programs to evaluate memory performance based on configurable parameters.
+
+#### How Does it Work?
+
+The standalone simulator leverages **bandwidth-latency curves** as its primary input. These curves encapsulate the relationship between memory traffic intensity and system performance, derived from real-world measurements or detailed hardware simulations. 
+
+Programs interact with the simulator through the following process:
+1. Specify memory access parameters, such as traffic intensity, CPU frequency, and curve selection.
+2. Run simulations to assess memory behavior, observing how latency and bandwidth adjust under varying conditions.
+
+This lightweight, analytical approach ensures both speed and accuracy, making it an essential tool for evaluating memory technologies prior to full system deployment.
+
+---
+
+## 2. Directory Breakdown
+
+<p align="center"><img src="../figures/folder_structure.png" width="60%" height="60%"></p>
+<p align="center"><i>Figure 2: Structure of the Standalone Simulator and its main components.</i></p>
+
+#### ```data/```
+This directory contains pre-generated **bandwidth-latency curves** for various memory technologies and CPUs, such as DDR4, DDR5, HBM2, and CXL. These curves serve as input to the simulator, capturing memory performance characteristics under different conditions.
+
+- The `data/` directory is continuously updated with new curves.  
+- If you wish to create your own curves, refer to **[Curve Generation Guide](#link-to-guide)** or use the **Mess Framework’s benchmarking tools** to measure them directly on your hardware.
+
+#### ```scripts/``` 
+This folder contains pre-defined scripts to run experiments for various memory configurations. 
+
+- These scripts are ready-to-use and designed for specific architectures, making it easy to start simulations without additional setup.
+  - For example, run the DDR4 experiment with:  
+    ```bash
+    bash scripts/ddr4-exp.sh
+    ```
+- If you want to modify these scripts or create custom configurations, refer to the **README in the `scripts/` directory** for detailed instructions.
+
+#### ```src/``` 
+This directory contains the core logic of the standalone simulator.
+
+- **`bw_lat_mem_ctrl.cpp`** and **`bw_lat_mem_ctrl.h`** implement the simulator's main functionality.
+- **`main.cpp`** serves as an example file, demonstrating how to set up and use the simulator.
+
+Refer to the code in `src/` if you wish to customize the simulator or integrate it into other systems.
 
 
-## Structure 
 
-This folder includes multiple files. we explain each in detail. 
+#### ```build/``` 
+This final directory does not exist by default but will be created during compilation.
 
-```sh
+- It contains the compiled executable for the simulator, which can be used to run simulations:
+  ```bash
+  ./build/mess_example
+    ```
 
-Standalone
- ├── curves-src
- │   ├── skylake-ddr4 
- │   ├── Skylake-numa-ddr4 
- │   ├── graviton3-ddr5 
- │   ├── a64fx-hbm2e 
- │   ├── cxl 
- ├── cxl-exp.sh
- ├── ddr4-exp.sh
- ├── ddr5-exp.sh
- ├── hbm-exp.sh
- ├── runner.sh
- ├── main.cpp
- └── bw_lat_mem_ctrl.*
+Ensure you have compiled the simulator with make before running any experiments.
 
+---
 
-```
+## 3. Build and Run
 
- - curves-src: This folder contains bandwidth-latency curves, which are used as inputs for the Mess simulator. The curves are generated using the Mess benchmark (for actual hardware) or detailed RTL simulations (for CXL).
+### Building the Simulator
+To build the standalone Mess simulator, ensure that you have all necessary dependencies installed (e.g., a C++ compiler and GNU Make). From the `Standalone/` directory, run:
 
-
- - cxl-exp.sh: This script run the standalone version of Mess simulator for CXL technology.  
- - ddr4-exp.sh: This script run the standalone version of Mess simulator for DDR4 technology.  
- - ddr5-exp.sh: This script run the standalone version of Mess simulator for DDR5 technology.  
- - hbm-exp.sh: This script run the standalone version of Mess simulator for HBM2 technology.  
- - runner.sh: This script run the standalone version of Mess simulator for all the technologies (all the above scipts are a subset of this scipt).  
-
-
- - main.cpp: This is small example how to instantiate Mess simulator and use it.  
- - bw_lat_mem_ctrl.*: These files are the implementation of the Mess simulator. 
-
-
-
-## How to Run the Script 
-
-In this section, with `ddr4-exp.sh` script as an example, we will explain how the scipts work:
-
-```sh
-# compile the standalone Mess simulator
+```bash
 make
-
-echo "latency [ns], issue bandwidth [GB/s]\n"
-
-echo "\n"
-echo "Skylake with 6x DDR4-2666"
-
-# this is the CPU frequency, we consider for our experiment (In integrated version, this will be the CPU frequency of your CPU simulator)
-frequencyCPU=2.1
-
-# This is the CPU frequency used to measure the bandwidth-latency curves. Since latency values are saved in cycles, we need this frequency to convert them into nanoseconds. We also need it to conver the saved cycles into the cycles of our CPU simulator which might work on different frequency.
-frequencyCurve=2.1
-
-# The Mess simulator reports latency from the memory controller to main memory. However, the curve data (except for CXL) includes the full latency—from the core to main memory. Therefore, before simulating the main memory, we need to adjust the curve values by subtracting the on-chip latency. 
-onChipLatency=51
-
-
-# We run Mess simulation multiple time, each with different pause value (different issued bandwidth).
-# Mess simulation requires five inputs: 
-# 1. address of the input curves
-# 2. pause value which determing the final bandwdith (the lower pause result in higher bandwidth)
-# 3. CPU frequency of our simulation. The higher the CPU frequency, we will issue higher bandwidth with the same pause values. 
-# 4. Curve frequency which is the frequency of the CPU, in which we generate the curves. For each system, the CPU frequencies is reported in the Mess paper. 
-# 5. On ship latency, which we estimated based on the latency to the LLC.  
-./main ./curves_src/skylake-ddr4 20000 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 200 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 100 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 50 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 20 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 10 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 9 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 8 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 7 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 6 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 5 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 4 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 3 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 2 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 1 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 0 $frequencyCPU $frequencyCurve $onChipLatency
-``` 
-
-
-
-## example outputs
-
-Below we show the example output of running the script `ddr4-exp.sh` as (latency in ns and BW in GB/s):
- 
-
-```sh
-
-70.00, 0.07 GB/s
-71.43, 6.72 GB/s
-73.81, 13.44 GB/s
-77.62, 26.88 GB/s
-90.00, 67.20 GB/s
-50835.71, 134.40 GB/s
-50873.81, 149.33 GB/s
-50899.53, 168.00 GB/s
-50916.19, 192.00 GB/s
-50933.34, 224.00 GB/s
-50945.71, 268.80 GB/s
-50954.29, 336.00 GB/s
-50967.14, 448.00 GB/s
-50975.71, 672.00 GB/s
-50984.29, 1344.00 GB/s
 ```
 
-As observed, latency increases when the bandwidth exceeds the maximum bandwidth of the input curves (116 GB/s in this experiment). Since this simulation is trace-based and lacks a feedback loop, it cannot prevent the increase in issued bandwidth. If a CPU simulator were used, Long latencies would introduce significant stalls, resulting in a decrease in bandwidth.
+This command compiles the simulator and generates an executable in the ```build/``` directory. By default, the compiled program is based on the **example program** located in ```src/main.cpp```.
 
-## Suggestions
 
-We can modify the pause values and input curve values, then observe the final reported latency and bandwidth to gain a better understanding of how the Mess simulator works. In all these experiments, we test only a 100% read workload. However, in the main file, you can modify the issued accesses to include writes as well. If you decide to integrate the Mess simulator into your CPU simulator, please feel free to email me—I would be more than happy to assist.
+##### About the Example Program
+
+The example program demonstrates the core functionality of the Mess simulator, including how to:
+
+1. Use bandwidth-latency curves from the data/ directory as input.
+2. Simulate memory behavior for a specific configuration (e.g., DDR4 at a given CPU frequency).
+3. Output key metrics, such as latency and bandwidth, for various pause values.
+
+The example program runs read operations over multiple iterations and uses the BwLatMemCtrl class to model memory system behavior. Users can modify this file to experiment with different workloads, configurations, or technologies.
+
+#### Running the Simulator
+
+Once compiled, you can run the simulator in two ways:
+
+##### 1. Using Pre-Defined Scripts
+
+The scripts/ folder contains ready-to-use scripts for specific memory configurations. For example:
+```bash
+bash scripts/ddr4-exp.sh
+```
+
+These scripts:
+- Automatically compile the simulator (if not already compiled).
+- Set up key parameters (e.g., pause, frequencyCPU, frequencyCurve).
+- Run the simulator across a range of configurations.
+
+##### 2. Manual Execution
+
+Alternatively, you can run the simulator directly using the executable:
+```bash
+./build/mess_example <curve_path> <pause_value> <frequencyCPU> <frequencyCurve> <onChipLatency>
+```
+
+For example:
+```bash
+./build/mess_example ./data/skylake-ddr4 20000 2.1 2.1 51
+```
+
+---
+
+## 4. Simulation Guide
+
+The simulator requires several input parameters to model memory behavior accurately. Here’s an explanation of each:
+
+#### How It Works
+
+1. ```<curve_path>```:
+    - Path to the bandwidth-latency curve file (e.g., ./data/skylake-ddr4).
+    - These curves describe memory performance under varying traffic intensities.
+2. ```<pause_value>```:
+    - Controls the memory issue rate.
+    - Smaller values simulate higher bandwidth, while larger values simulate lower bandwidth.
+3. ```<frequencyCPU>```:
+    - Frequency of the simulated CPU in GHz.
+    - Used to scale latency and bandwidth based on CPU clock speed.
+4. ```<frequencyCurve>```:
+    - CPU frequency (in GHz) used to generate the input bandwidth-latency curves.
+    - This ensures the simulator scales latency values (stored as cycles) correctly.
+5. ```<onChipLatency>```:
+    - The latency (in nanoseconds) from the CPU core to the memory controller.
+    - Subtracted from the curve values to isolate memory controller-to-main-memory latency.
+
+#### How It Works
+
+1. The simulator processes the bandwidth-latency curves and adjusts latency values based on the provided CPU frequencies.
+2. It simulates memory requests using the **BwLatMemCtrl** class, calculating latency and bandwidth for each configuration.
+3. Outputs include:
+    - **Latency (in nanoseconds)**: Calculated based on CPU frequency and curve data.
+    - **Bandwidth (in GB/s)**: Determined by the issue rate and pause value.
+
+---
+
+## 5. Example Outputs
+
+The simulator outputs latency (ns) and bandwidth (GB/s) for each run. Here’s an example output for DDR4 with different pause values:
+
+```txt
+90.00 ns, 67.20 GB/s
+50835.71 ns, 134.40 GB/s
+50916.19 ns, 192.00 GB/s
+50945.71 ns, 268.80 GB/s
+50967.14 ns, 448.00 GB/s
+```
+
+#### Interpreting the Results
+
+1. Latency: As bandwidth utilization increases, latency generally rises. For example:
+    - At 67.20 GB/s, the latency is 90.00 ns.
+    - At 448.00 GB/s, the latency increases significantly to 50967.14 ns.
+2. Bandwidth Saturation:
+    - When the issued bandwidth exceeds the memory system’s maximum capacity (e.g., 116 GB/s for DDR4), latency spikes drastically.
+    - This behavior reflects realistic memory system constraints, where excessive traffic leads to queuing delays.
+
+
+####  Notes
+- Experiment with different pause values to explore how the memory system responds under varying loads.
+- Use the pre-defined scripts for a faster, guided exploration of results across a wide range of configurations.
+- Modify the example program (src/main.cpp) to include write operations or test new workloads.
