@@ -1,5 +1,20 @@
 clear
 
+current_folder=$(basename "$PWD")
+
+# Check if the current folder is named "Standalone"
+if [ "$current_folder" != "Standalone" ]; then
+    # Go one directory up
+    cd ..
+    current_folder=$(basename "$PWD")
+    # Check again if it is "Standalone"
+    if [ "$current_folder" != "Standalone" ]; then
+        echo "Please run this script from the 'Standalone' folder."
+        exit 1
+    fi
+fi
+
+
 # compile the standalone Mess simulator
 make
 
@@ -25,19 +40,19 @@ onChipLatency=51
 # 3. CPU frequency of our simulation. The higher the CPU frequency, we will issue higher bandwidth with the same pause values. 
 # 4. Curve frequency which is the frequency of the CPU, in which we generate the curves. For each system, the CPU frequencies is reported in the Mess paper. 
 # 5. On ship latency, which we estimated based on the latency to the LLC.  
-./main ./curves_src/skylake-ddr4 20000 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 200 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 100 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 50 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 20 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 10 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 9 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 8 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 7 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 6 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 5 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 4 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 3 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 2 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 1 $frequencyCPU $frequencyCurve $onChipLatency
-./main ./curves_src/skylake-ddr4 0 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 20000 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 200 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 100 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 50 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 20 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 10 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 9 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 8 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 7 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 6 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 5 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 4 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 3 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 2 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 1 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./curves_src/skylake-ddr4 0 $frequencyCPU $frequencyCurve $onChipLatency

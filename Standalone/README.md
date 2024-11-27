@@ -62,7 +62,7 @@ This folder contains pre-defined scripts to run experiments for various memory c
 This directory contains the core logic of the standalone simulator.
 
 - **`bw_lat_mem_ctrl.cpp`** and **`bw_lat_mem_ctrl.h`** implement the simulator's main functionality.
-- **`main.cpp`** serves as an example file, demonstrating how to set up and use the simulator.
+- **`example.cpp`** serves as an example file, demonstrating how to set up and use the simulator.
 
 Refer to the code in `src/` if you wish to customize the simulator or integrate it into other systems.
 
@@ -89,7 +89,7 @@ To build the standalone Mess simulator, ensure that you have all necessary depen
 make
 ```
 
-This command compiles the simulator and generates an executable in the ```build/``` directory. By default, the compiled program is based on the **example program** located in ```src/main.cpp```.
+This command compiles the simulator and generates an executable in the ```build/``` directory. By default, the compiled program is based on the **example program** located in ```src/example.cpp```.
 
 
 ##### About the Example Program
@@ -189,4 +189,4 @@ The simulator outputs latency (ns) and bandwidth (GB/s) for each run. Here’s a
 ####  Notes
 - Experiment with different pause values to explore how the memory system responds under varying loads.
 - Use the pre-defined scripts for a faster, guided exploration of results across a wide range of configurations.
-- Modify the example program (src/main.cpp) to include write operations or test new workloads.
+- Modify the example program (src/example.cpp) to include write operations or test new workloads.
