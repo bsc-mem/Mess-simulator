@@ -12,12 +12,12 @@
 ## 1. Overview
 
 ### What is the Standalone Simulator?
-The standalone simulator is a core component of the <strong>Mess Framework</strong>, a comprehensive solution for memory system benchmarking, simulation, and application profiling. Positioned within the <strong>Mess Simulation</strong> layer of the framework, the standalone simulator offers a streamlined and focused environment to explore the simulator’s fundamental capabilities without the complexity of full system integration.
+The standalone simulator is part of the **Mess Simulation**, a key layer within the **Mess Framework**. It provides a streamlined environment for evaluating memory performance using pre-characterized bandwidth-latency curves. This simulator enables users to understand the memory behavior in isolation, without requiring integration into larger CPU or system simulators.
 
 <p align="center"><img src="../figures/standalone_diagram.png" width="80%" height="80%"></p>
-<p align="center"><i>Figure 1: Overview of the Mess Framework. The standalone simulator fits into the simulation layer, leveraging pre-characterized bandwidth-latency curves.</i></p>
+<p align="center"><i>Figure 1: Structure of the Standalone Simulator. The Workload Generator interacts with the Mess Simulator, leveraging pre-computed bandwidth-latency curves to evaluate performance.</i></p>
 
-This version is ideal for users who want to deeply understand how the Mess simulator models memory performance. It serves as both a learning tool and a foundational step for integrating the simulator into larger CPU or system simulators.
+The standalone version is designed to help users grasp the core principles of the Mess Simulation and provides an essential starting point for exploring memory system performance across different technologies.
 
 #### Key Features
 - Functions independently of full-system simulators, enabling focused exploration of memory performance.
