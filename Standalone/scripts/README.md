@@ -1,42 +1,116 @@
-## Scripts
+# Mess Simulator Scripts
 
-Explain that you have set predefined examples of different technologies so that people don't have to do them.
+The `scripts/` directory contains pre-defined scripts for running the standalone Mess simulator with various memory technologies. These scripts allow users to quickly simulate bandwidth-latency behavior without needing to manually configure parameters for each experiment. Additionally, users can create their own custom scripts by following the provided template and instructions.
 
-But if anyone wants to do his/her own, explain what to do.
+---
 
+## Predefined Scripts
 
-The idea is to explain what you had in the main branch: 
+The following scripts are included in the `scripts/` directory:
 
+- **`cxl-exp.sh`**  
+  Runs the standalone Mess simulator for **CXL (Compute Express Link)** memory expanders.
 
-cxl-exp.sh: This script run the standalone version of Mess simulator for CXL technology.
+- **`ddr4-exp.sh`**  
+  Simulates the behavior of **DDR4** memory on the standalone Mess simulator.
 
-ddr4-exp.sh: This script run the standalone version of Mess simulator for DDR4 technology.
+- **`ddr5-exp.sh`**  
+  Simulates the behavior of **DDR5** memory on the standalone Mess simulator.
 
-ddr5-exp.sh: This script run the standalone version of Mess simulator for DDR5 technology.
+- **`hbm-exp.sh`**  
+  Runs the simulator for **HBM2 (High Bandwidth Memory)** technology.
 
-hbm-exp.sh: This script run the standalone version of Mess simulator for HBM2 technology.
+- **`run-all.sh`**  
+  A convenience script that executes **all predefined scripts** sequentially, allowing for simulations of all the above technologies in one go.
 
-runner.sh: This script run the standalone version of Mess simulator for all the technologies (all the above scipts are a subset of this scipt).
+---
 
+## How to Use the Predefined Scripts
 
-+
+Each script includes predefined parameters for the memory technology it targets. These parameters include CPU frequency, curve frequency, and on-chip latency. Here’s how to run a script using `ddr4-exp.sh` as an example:
 
-How to Run the Script
-In this section, with ddr4-exp.sh script as an example, we will explain how the scipts work:
+### Running a Script
 
-# compile the standalone Mess simulator
-make
+1. Navigate to the `scripts/` directory.
+2. Ensure the `Standalone` directory is the parent of your current folder (the script checks this automatically).
+3. Run the script:
+   ```bash
+   bash ddr4-exp.sh
+   ```
 
-echo "latency [ns], issue bandwidth [GB/s]\n"
+4. The script will:
+   - Compile the standalone Mess simulator (if not already compiled).
+   - Simulate the memory behavior for various configurations (using multiple pause values).
 
-echo "\n"
-echo "Skylake with 6x DDR4-2666"
+---
 
-# this is the CPU frequency, we consider for our experiment (In integrated version, this will be the CPU frequency of your CPU simulator)
-frequencyCPU=2.1
+## Script Structure
 
-# This is the CPU frequency used to measure the bandwidth-latency curves. Since latency values are saved in cycles, we need this frequency to convert them into nanoseconds. We also need it to conver the saved cycles into the cycles of our CPU simulator which might work on different frequency.
-frequencyCurve=2.1
+All scripts follow a similar structure. Below is an explanation of the key sections:
 
-# The Mess simulator reports latency from the memory controller to main memory. However, the curve data (except for CXL) includes the full latency—from the core to main memory. Therefore, before simulating the main memory, we need to adjust the curve values by subtracting the on-chip latency. 
-onChipLatency=51
+1. **Directory Check**: Ensures the script is being run from the correct location. The script verifies if it is inside the `Standalone` folder or its immediate parent. If not, it exits with an error message:
+
+   ```bash
+   current_folder=$(basename "$PWD")
+   if [ "$current_folder" != "Standalone" ]; then
+       cd ..
+       current_folder=$(basename "$PWD")
+       if [ "$current_folder" != "Standalone" ]; then
+           echo "Please run this script from the 'Standalone' folder."
+           exit 1
+       fi
+   fi
+   ```
+
+2. **Compilation**: The script compiles the standalone Mess simulator using `make`, ensuring the executable is ready:
+
+   ```bash
+   make
+   ```
+
+3. **Parameter Setup**: Key variables for the simulation are set here:
+   - **`frequencyCPU`**: The frequency of the CPU being simulated (e.g., 2.1 GHz for DDR4).
+   - **`frequencyCurve`**: The frequency at which the bandwidth-latency curves were measured.
+   - **`onChipLatency`**: Latency from the core to the memory controller (in nanoseconds).
+
+   Example:
+   ```bash
+   frequencyCPU=2.1
+   frequencyCurve=2.1
+   onChipLatency=51
+   ```
+
+4. **Simulation Execution**: Runs the Mess simulator for multiple pause values to simulate different bandwidths:
+
+   ```bash
+   ./build/mess_example ./curves_src/skylake-ddr4 20000 $frequencyCPU $frequencyCurve $onChipLatency
+   ./build/mess_example ./curves_src/skylake-ddr4 200 $frequencyCPU $frequencyCurve $onChipLatency
+   ./build/mess_example ./curves_src/skylake-ddr4 100 $frequencyCPU $frequencyCurve $onChipLatency
+   ```
+---
+
+## Creating Your Own Script
+
+To create a custom script for a new memory technology or configuration, follow these steps:
+
+1. **Copy an Existing Script**  
+   Use one of the provided scripts as a starting point:
+   ```bash
+   cp ddr4-exp.sh my-custom-exp.sh
+   ```
+
+2. **Update Parameters**  
+   Modify the parameters to reflect your desired configuration:
+   - **Curve Path**: Change `./curves_src/skylake-ddr4` to the path of your custom curves.
+   - **FrequencyCPU**: Set the frequency of your simulated CPU.
+   - **FrequencyCurve**: Match the frequency at which your bandwidth-latency curves were measured.
+   - **OnChipLatency**: Specify the latency from core to memory controller.
+
+3. **Add Your Curve Files**  
+   Ensure the bandwidth-latency curves for your configuration are added to the `curves_src/` directory.
+
+4. **Run Your Script**  
+   Execute your custom script just like the predefined ones:
+   ```bash
+   bash my-custom-exp.sh
+   ```

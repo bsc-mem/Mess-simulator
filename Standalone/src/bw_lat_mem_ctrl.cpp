@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024, Barcelona Supercomputing Center
- * Contact: pouya.esmaili    [at] bsc [dot] es
+ * Contact: pouya.esmaili [at] bsc [dot] es
  *          petar.radojkovic [at] bsc [dot] es
  * All rights reserved.
  *
@@ -32,343 +32,265 @@
 
 #include "bw_lat_mem_ctrl.h"
 
+// Custom round function to avoid dependency issues
+static double roundDouble(double d) {
+    return std::floor(d + 0.5);
+}
 
-BwLatMemCtrl::BwLatMemCtrl(string _curveAddress, double _curveFrequency, uint32_t _curveWindowSize, double frequencyRate, double _onCoreLatency) 
-{
-	curveAddress = _curveAddress;
-	curveWindowSize = _curveWindowSize;
+BwLatMemCtrl::BwLatMemCtrl(const std::string& _curveAddress, double _curveFrequency,
+                           uint32_t _curveWindowSize, double frequencyRate, double _onCoreLatency)
+    : curveAddress(_curveAddress),
+      curveWindowSize(_curveWindowSize),
+      frequencyCPU(frequencyRate),
+      onCoreLatency(_onCoreLatency),
+      leadOffLatency(100000), // Initialize with a large value; will be updated later
+      maxBandwidth(0),
+      maxLatency(0),
+      currentWindowAccessCount(0),
+      currentWindowAccessCount_wr(0),
+      currentWindowAccessCount_rd(0),
+      lastEstimatedBandwidth(0),
+      lastEstimatedLatency(leadOffLatency),
+      latency(static_cast<uint32_t>(leadOffLatency)),
+      overflowFactor(0),
+      lastIntReadPercentage(0) {
+    // Load curve data for 101 different read percentages: 0%, 2%, ..., 100%
+    for (uint32_t i = 0; i <= 100; i += 2) {
+        // Generate the file path for the current read percentage
+        std::string fileAddress = curveAddress + "/bwlat_" + std::to_string(i) + ".txt";
+        std::ifstream curveFile(fileAddress);
 
-	frequencyCPU = frequencyRate;
-	onCoreLatency = _onCoreLatency;
+        // Check if the file was successfully opened
+        if (!curveFile.is_open()) {
+            std::cerr << "Failed to open curve file: " << fileAddress << std::endl;
+            continue;
+        }
 
-	// initialize with non null values
-	leadOffLatency = 100000;
-	maxBandwidth = 0;
-	maxLatency = 0;
+        // Temporary variables to hold the maximum bandwidth and latency for the current curve
+        std::vector<std::vector<double>> curve_data;
+        double maxBandwidthTemp = 0;
+        double maxLatencyTemp = 0;
 
-	// curves_data 
-	// 101 different read percentage curves: 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, ..., 100 
-	for (uint32_t i=0; i<101; i+=2) {
-		string fileAddress;
-		ifstream curveFiles;
+        double inputBandwidth, inputLatency;
 
-		double inputBandwidth, inputLatency; 
+        // Read the curve data from the file
+        while (curveFile >> inputBandwidth >> inputLatency) {
+            // Convert bandwidth from MB/s to accesses per cycle
+            // Assuming each access is 64 bytes
+            inputBandwidth = (inputBandwidth / 64) / (frequencyCPU * 1000);
 
-		// generate the address of the files
-		fileAddress = curveAddress + "/bwlat_" + to_string(i) + ".txt";
-		
-		// test to make sure we are reading correct files.
-		// cout << fileAddress << endl; 
+            // Adjust input latency based on the CPU frequency
+            // The input latency is in cycles at the curve's frequency; convert it to the CPU's cycles
+            inputLatency *= (frequencyCPU / _curveFrequency);
 
-		curveFiles.open(fileAddress, std::ifstream::in);
+            // Adjust latency based on on-core latency
+            // onCoreLatency = 0 for curves measured from the memory controller
+            // onCoreLatency > 0 for curves measured from the CPU core
+            inputLatency -= onCoreLatency;
 
-		// read the curve file into the curves_date 
-		// also set leadOffLatency, maxBandwidth, maxLatency 
-		
-		vector<vector<double>> curve_data;
-		double maxBandwidthTemp = 0;
-		double maxLatencyTemp = 0;
+            // Store the data point (bandwidth, latency)
+            curve_data.push_back({inputBandwidth, inputLatency});
 
-		while(curveFiles >> inputBandwidth >> inputLatency) {
-			vector<double> dataPoint;
+            // Update lead-off latency (minimum latency)
+            if (leadOffLatency > inputLatency)
+                leadOffLatency = inputLatency;
 
-			// curves BW values are in MB/s. we need to change it to accesses per cycles. 
-			// we consider each access is 64 bytes. Otherwise this needs to be updated. 
-			inputBandwidth = (inputBandwidth / 64) / (frequencyCPU*1000)  ;
+            // Update maximum latency and bandwidth for all curves
+            if (maxLatency < inputLatency)
+                maxLatency = inputLatency;
+            if (maxBandwidth < inputBandwidth)
+                maxBandwidth = inputBandwidth;
 
-			// decrease LLC latency; this is hard coded for skylake. it should read all parent 
-			// cache latency and sum them at the end. for Skylake this value is 37 (L3) + 10 (L2) + 4 (L1) = 51
-			
-			// inputLatency from curves is in cycles based on the freuquency of the cuve data. 
-			// we need to convert it to the cycles of the CPU simulator. 
-			inputLatency = inputLatency * (frequencyCPU / _curveFrequency);
+            // Update maximum latency and bandwidth for the current read percentage
+            if (maxLatencyTemp < inputLatency)
+                maxLatencyTemp = inputLatency;
+            if (maxBandwidthTemp < inputBandwidth)
+                maxBandwidthTemp = inputBandwidth;
+        }
 
-			// onCoreLatency= 0 --> this is for skylake+CXL (CXL curves are from the CXL Host to memory not from the core to memory. so we do not need to deacrease the latency)
-			// onCoreLatency=51 --> this is for skylake+DDR4, Graviton+DDR5 and Fujitsu+HBM2 (curves are from core to main memory)
-			inputLatency = inputLatency - onCoreLatency; 
-						
-			dataPoint.push_back(inputBandwidth);
-			dataPoint.push_back(inputLatency);			
-			// cout << dataPoint[0] << " " << dataPoint[1] << endl;
+        // Store the maximum bandwidth and latency for the current read percentage
+        maxBandwidthPerRdRatio.push_back(maxBandwidthTemp);
+        maxLatencyPerRdRatio.push_back(maxLatencyTemp);
+        curves_data.push_back(curve_data);
 
-			if (leadOffLatency > inputLatency)
-				leadOffLatency = inputLatency;
-			if (maxLatency < inputLatency)
-				maxLatency = inputLatency;
-			if (maxLatencyTemp < inputLatency)
-				maxLatencyTemp = inputLatency;
-			if (maxBandwidth < inputBandwidth)
-				maxBandwidth = inputBandwidth;
-			if (maxBandwidthTemp < inputBandwidth)
-				maxBandwidthTemp = inputBandwidth;
-
-			curve_data.push_back(dataPoint);
-		}
-
-		maxBandwidthPerRdRatio.push_back(maxBandwidthTemp);
-		maxLatencyPerRdRatio.push_back(maxLatencyTemp); 
-		curves_data.push_back(curve_data);
-		curveFiles.close();
-	}
-
-	// cout << "leadOffLatency: " << (leadOffLatency + 51) / 2.1 << " ns, cycles: " << (leadOffLatency + 51) << endl;
-	// cout << "maxLatency: " << (maxLatency + 51) / 2.1 << " ns"<< endl;
-	// cout << "maxBandwidth: " << maxBandwidth * 64  * 2.1 << " GB/s" << endl;
-
-	// test to see if the data is loaded correctly.
-	// for (uint32_t i=0; i< curves_data.size(); i++)
-	// {
-	// 	cout << "read percentage is: " << i*2 << endl;
-	// 	for (uint32_t j = 0; j < curves_data[i].size(); ++j)
-	// 	{
-	// 		cout << curves_data[i][j][0] << " " << curves_data[i][j][1] << endl;
-	// 	}
-	// }
-
-
-	// initialization of the counters
-	currentWindowAccessCount = 0;
-	currentWindowAccessCount_wr = 0;
-	currentWindowAccessCount_rd = 0;
-
-	// initialize the state
-	lastEstimatedBandwidth = 0;
-	lastEstimatedLatency = leadOffLatency;
-	latency = (uint32_t) lastEstimatedLatency;
-
-	// initial the overflow factor
-	overflowFactor = 0;
-
+        // Close the curve file
+        curveFile.close();
+    }
 }
 
 uint32_t BwLatMemCtrl::getLeadOffLatency() {
-	return (uint32_t) leadOffLatency;
+    // Return the minimum achievable latency for memory access
+    return static_cast<uint32_t>(leadOffLatency);
 }
-
-
-double round(double d) {
-	return std::floor(d + 0.5);
-}
-
 
 uint32_t BwLatMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPercentage) {
+    const double convergeSpeed = 0.05; // Convergence factor for PID-like controller
 
-	double convergeSpeed = 0.05;
-	// factor of latency over max latency when the bandwidth is maxed out.
-	
+    // Convert read percentage to an even integer between 0 and 100
+    uint32_t intReadPercentage = static_cast<uint32_t>(roundDouble(100 * readPercentage * 0.5)) * 2;
+    lastIntReadPercentage = intReadPercentage;
 
-	// curves_data 
-	// first select the correct read to write ratio. an even number between 0 and 100
-	uint32_t intReadPercentage;
-	intReadPercentage = round( (100*readPercentage) * 0.5f ) * 2;
-	lastIntReadPercentage = intReadPercentage;
+    // Ensure the read percentage is within valid bounds
+    assert(intReadPercentage <= 100);
+    assert(intReadPercentage % 2 == 0);
 
-	assert(intReadPercentage >= 0);
-	assert(intReadPercentage <= 100);
-	assert(intReadPercentage % 2 == 0);
+    // Determine the index for the curves_data based on read percentage
+    uint32_t curveDataIndex = intReadPercentage / 2;
 
-	uint32_t curveDataIndex = intReadPercentage/2;
+    // Initialize estimated data points
+    double finalLatency = leadOffLatency;
+    double finalBW = 0.0;
 
-	// estimated data points
-	double finalLatency=leadOffLatency;
-	double finalBW=0;
+    // Apply a weighted average to bandwidth for smooth convergence (PID-like control)
+    bandwidth = convergeSpeed * bandwidth + (1 - convergeSpeed) * lastEstimatedBandwidth;
 
-	// TODO...
-	// sanity check should be added later
-	// cout << endl << "new" << endl;
-	// cout << "maxBandwidth in all the curves : " << maxBandwidth  << " acesses/cycles" << endl;
-	// cout << "measured bandwidth: " << bandwidth << " max from curve: "<< maxBandwidthPerRdRatio[curveDataIndex] << endl;
-	// cout << "rd percentage: " << intReadPercentage << endl;
+    // Check if the bandwidth exceeds the maximum allowed for the current read percentage
+    if (maxBandwidthPerRdRatio[curveDataIndex] * 0.99 < bandwidth) {
+        // Limit the bandwidth to the maximum and apply a weighted average
+        finalBW = convergeSpeed * maxBandwidthPerRdRatio[curveDataIndex] +
+                  (1 - convergeSpeed) * lastEstimatedBandwidth;
 
-	// cout << "lastEstimatedLatency " << lastEstimatedLatency << endl;
-	// cout << "lastEstimatedBandwidth: " << lastEstimatedBandwidth << endl;
+        // Increase overflow factor to simulate latency penalty for high bandwidth
+        overflowFactor += 0.02;
 
-	// do not jump. slowly converge. PID-like controller
-	// Simple explanation: weithted average of the last estimated value and the new value.
-	// complicated explanation: this equation represent integral operation in descrete domain for PID controller. 
-	bandwidth = convergeSpeed * bandwidth + (1-convergeSpeed) * lastEstimatedBandwidth;
+        // Calculate the latency penalty based on the overflow factor
+        finalLatency = (1 + overflowFactor) * maxLatencyPerRdRatio[curveDataIndex];
+        finalLatency = convergeSpeed * finalLatency + (1 - convergeSpeed) * lastEstimatedLatency;
 
+        // Update the last estimated bandwidth and latency
+        lastEstimatedBandwidth = finalBW;
+        lastEstimatedLatency = finalLatency;
 
-	// check if we overflow the maximum bandwidth. We need to add latency penaly for very high bandwidth applications
-	// bool overflow=false;
-	// if (maxBandwidth < bandwidth) {	
-	if (maxBandwidthPerRdRatio[curveDataIndex]*0.99 < bandwidth) {
-		
+        // Ensure latency is not less than the lead-off latency
+        if (finalLatency < leadOffLatency)
+            finalLatency = leadOffLatency;
 
-		// bandwidth =  maxBandwidthPerRdRatio[curveDataIndex];
-		// cout << "more than max! bandwidth: " << bandwidth << " max from curve: "<< maxBandwidthPerRdRatio[curveDataIndex] << endl;
-		// overflow=true;
-		// let's converge slowly
-		finalBW = convergeSpeed * maxBandwidthPerRdRatio[curveDataIndex] + (1-convergeSpeed) * lastEstimatedBandwidth;
-		// simulate the wave form at least for a very high bandwidth
-		// finalLatency = maxLatencyPerRdRatio[curveDataIndex];
-		
-		// add penalty for the wave form section...
-		overflowFactor = overflowFactor + 0.02;
-		finalLatency = (1+overflowFactor) * maxLatencyPerRdRatio[curveDataIndex];		
-		finalLatency = convergeSpeed * finalLatency + (1-convergeSpeed) * lastEstimatedLatency;
-		
+        // Sanity check
+        assert(finalLatency >= leadOffLatency);
+        return static_cast<uint32_t>(finalLatency);
+    }
 
-		lastEstimatedBandwidth = finalBW;
-		lastEstimatedLatency = finalLatency;
+    // Find the appropriate latency corresponding to the current bandwidth
+    uint32_t j;
+    for (j = 0; j < curves_data[curveDataIndex].size(); ++j) {
+        if (finalBW == 0) {
+            // Initialize finalBW and finalLatency with the first data point
+            finalBW = curves_data[curveDataIndex][j][0];
+            finalLatency = curves_data[curveDataIndex][j][1];
+        }
+        if (curves_data[curveDataIndex][j][0] >= bandwidth) {
+            // Update finalBW and finalLatency if the curve's bandwidth is greater than or equal to the current bandwidth
+            finalBW = curves_data[curveDataIndex][j][0];
+            finalLatency = curves_data[curveDataIndex][j][1];
+        } else {
+            // Break the loop when we find a bandwidth less than the current bandwidth
+            break;
+        }
+    }
 
-		// finalLatency = finalLatency + overflowFactor*(double)(finalLatency);
-		// cout << "overflow..." << endl;
-		
-		// cout << "finalLatency " << finalLatency << endl;
+    // Adjust index if we've reached the end of the curve data
+    if (j == curves_data[curveDataIndex].size())
+        j--;
 
-		if(finalLatency<(uint32_t)leadOffLatency)
-			finalLatency=(uint32_t)leadOffLatency;
-		// put more assert
-		assert(finalLatency>= (uint32_t)leadOffLatency);
+    if (j != 0) { // Not at the first data point (highest bandwidth)
+        // Perform linear interpolation between two data points to estimate the latency
+        double x1 = curves_data[curveDataIndex][j][0];
+        double y1 = curves_data[curveDataIndex][j][1];
+        double x2 = curves_data[curveDataIndex][j - 1][0];
+        double y2 = curves_data[curveDataIndex][j - 1][1];
+        double x = bandwidth;
 
-		return (uint32_t) finalLatency;
+        // Calculate the interpolated latency
+        finalLatency = y1 + ((x - x1) / (x2 - x1)) * (y2 - y1);
 
-		// cout << "more than max! bandwidth: " << bandwidth << " max from curve: "<< maxBandwidthPerRdRatio[curveDataIndex] << endl;
-	}
+        // Adjust latency with overflow factor to stabilize the system
+        finalLatency += overflowFactor * finalLatency;
 
-	
+        // Apply a weighted average to latency for smooth convergence
+        finalLatency = convergeSpeed * finalLatency + (1 - convergeSpeed) * lastEstimatedLatency;
 
-	// find the latency that corresponds to the updated measured bandwidth: 
-	// use j later for extrapolation
-	uint32_t j;
-	for (j = 0; j < curves_data[curveDataIndex].size(); ++j)
-	{
-		// cout << "finalLatency " << finalLatency << " finalBW: " << finalBW << endl;
-		// cout << "curves_data[curveDataIndex][j][0]: " << curves_data[curveDataIndex][j][0] << " bandwidth " << bandwidth << endl;
-		if (finalBW == 0) {
-			finalBW = curves_data[curveDataIndex][j][0];
-			finalLatency = curves_data[curveDataIndex][j][1];
-		}
-		if (curves_data[curveDataIndex][j][0] >= bandwidth) {
-			finalBW = curves_data[curveDataIndex][j][0];
-			finalLatency = curves_data[curveDataIndex][j][1];
-		}
-		else {
-			break;
-		}
-		// cout << curves_data[curveDataIndex][j][0] << " " << curves_data[curveDataIndex][j][1] << endl;
-	}
-	// just a hack to see WTF is going on:
-	if(j==curves_data[curveDataIndex].size())
-		j--;
+        // Decrease overflow factor if not in overflow mode
+        if (overflowFactor > 0.01)
+            overflowFactor -= 0.01;
+    } else {
+        // At the first data point; use the current finalLatency
+        finalLatency += overflowFactor * finalLatency;
+        finalLatency = convergeSpeed * finalLatency + (1 - convergeSpeed) * lastEstimatedLatency;
 
-	if (j!=0) { // we are not at the first point (highest bandwidth)
+        // Decrease overflow factor if not in overflow mode
+        if (overflowFactor > 0.01)
+            overflowFactor -= 0.01;
+        if (overflowFactor < 0)
+            overflowFactor = 0;
+    }
 
-		// for easier readability
-		double x1 = curves_data[curveDataIndex][j][0];
-		double y1 = curves_data[curveDataIndex][j][1];
-		double x2 = curves_data[curveDataIndex][j-1][0];
-		double y2 = curves_data[curveDataIndex][j-1][1];
-		double x = bandwidth;
-		// cout << "bandwidth: " << bandwidth << endl;
-		// cout << "x1: " << x1 << "x2: " << x2 <<endl;
-		// cout << "y1: " << y1 << "y2: " << y2 <<endl;
-		// if we map between two data point, we draw a line between the two points
-		// and then map find corresponding latency on the line that connected the two points.
-		finalLatency = y1 + ((x - x1) / (x2 - x1)) * (y2 - y1);
-		// cout << "final y " << finalLatency << endl;
-		// overflow factor helps to stablize the system. maybe we do not need it after all. 
-		// double check its importance at the end of the debugging... 
-		// PID is a better idea
-		finalLatency += overflowFactor*finalLatency;
+    // Update the last estimated bandwidth and latency
+    lastEstimatedBandwidth = bandwidth;
+    lastEstimatedLatency = finalLatency;
 
-		finalLatency = convergeSpeed * finalLatency + (1-convergeSpeed) * lastEstimatedLatency;
-		
-		// decrease overflow factor if we are not in the overflow mode anymore 
-		if (overflowFactor>0.01) // never let the overflowFactor to become negative otherwise it will be a disaster
-			overflowFactor = overflowFactor - 0.01;		
-	}
-	else {
-		// cout << "bandwidth: " << bandwidth << endl;
-		finalLatency += overflowFactor*finalLatency;
-		finalLatency = convergeSpeed * finalLatency + (1-convergeSpeed) * lastEstimatedLatency;
-		
-		// decrease overflow factor if we are not in overflow mode
-		if (overflowFactor>0.01) // never let the overflowFactor to overflow
-			overflowFactor = overflowFactor - 0.01;
-		// never let the overflowFactor to overflow
-		if (overflowFactor<0)
-		{
-			overflowFactor=0;
-		}
-	}
-	
-	// update the last estimated point to new values
-	lastEstimatedBandwidth = bandwidth;
-	lastEstimatedLatency = finalLatency;
+    // Ensure latency is not less than the lead-off latency
+    if (finalLatency <= leadOffLatency)
+        finalLatency = leadOffLatency;
 
-	// cout << "lastEstimatedBandwidth: " << lastEstimatedBandwidth << endl;
-	// cout << "finalLatency " << finalLatency << "  leadOffLatency: " << leadOffLatency << endl;
+    // Sanity check
+    assert(finalLatency >= leadOffLatency);
 
-	if(finalLatency<= (uint32_t)leadOffLatency)
-		finalLatency = (uint32_t)leadOffLatency;
-	// sanity check
-	assert(finalLatency>= (uint32_t)leadOffLatency);
-
-
-	return finalLatency;
-
-
+    return static_cast<uint32_t>(finalLatency);
 }
 
-void BwLatMemCtrl::updateLatency(uint64_t currentWindowEndCyclen) {
-	// bandwidth unit is accesses per cycles
-	
-	// calculate bandwidth and rd_percentage
-	double bandwidth = ((double)currentWindowAccessCount) / (double)(currentWindowEndCyclen - currentWindowStartCycle);
-	double readPercentage = ((double)(currentWindowAccessCount_rd))/ (currentWindowAccessCount_rd+currentWindowAccessCount_wr);
+void BwLatMemCtrl::updateLatency(uint64_t currentWindowEndCycle) {
+    // Calculate bandwidth in accesses per cycle
+    double bandwidth =
+        static_cast<double>(currentWindowAccessCount) / (currentWindowEndCycle - currentWindowStartCycle);
 
+    // Calculate read percentage
+    double readPercentage =
+        static_cast<double>(currentWindowAccessCount_rd) /
+        (currentWindowAccessCount_rd + currentWindowAccessCount_wr);
 
-	latency = searchForLatencyOnCurve(bandwidth, readPercentage);
-	assert(latency>=0); 
-	// below sanity check is not correct. we cannot be that accurate. remember !!!
-	// assert(lastEstimatedLatency<=maxLatency);
+    // Update latency based on the calculated bandwidth and read percentage
+    latency = searchForLatencyOnCurve(bandwidth, readPercentage);
 
-	// cout << "latency: " << latency << " cycles. readPercentage: " << readPercentage << endl;
-
+    // Sanity check
+    assert(latency >= 0);
 }
 
 uint64_t BwLatMemCtrl::access(uint64_t accessCycle, bool isWrite) {
-	
-
-    // start cycle of our measuremnt window
-    if (currentWindowAccessCount==0) {
-    	currentWindowStartCycle = accessCycle;
-    	// cout << "currentWindowStartCycle: " << currentWindowStartCycle << endl;
+    // Start cycle of the measurement window
+    if (currentWindowAccessCount == 0) {
+        currentWindowStartCycle = accessCycle;
     }
 
-    // counting the number of accesses, reads and writes 
+    // Increment access counts
     currentWindowAccessCount++;
     if (isWrite) {
-    	currentWindowAccessCount_wr++;
-    	// isWrite = true;
-    }
-    else {
-    	currentWindowAccessCount_rd++;
-    	// isWrite = false;
+        currentWindowAccessCount_wr++;
+    } else {
+        currentWindowAccessCount_rd++;
     }
 
-    // check if we are an the end of our measurment window
-    if(currentWindowAccessCount==curveWindowSize) {
-    	updateLatency(accessCycle);
-    	// cout << "currentWindowEndCycle: " << accessCycle << endl; 
-    	currentWindowAccessCount = 0; // reset the access as we enter a new window
-    	currentWindowAccessCount_wr = 0; // reset the access as we enter a new window
-    	currentWindowAccessCount_rd = 0; // reset the access as we enter a new window
+    // Check if we've reached the end of the measurement window
+    if (currentWindowAccessCount == curveWindowSize) {
+        // Update latency based on the current window's statistics
+        updateLatency(accessCycle);
+
+        // Reset counts for the new window
+        currentWindowAccessCount = 0;
+        currentWindowAccessCount_wr = 0;
+        currentWindowAccessCount_rd = 0;
     }
 
-
-    // return the latency based on cycles (CPU frequency)
-    return (uint64_t) (latency);
+    // Return the latency in cycles (CPU frequency)
+    return static_cast<uint64_t>(latency);
 }
 
 uint64_t BwLatMemCtrl::GetQsMemLoadCycleLimit() {
-	uint32_t curveDataIndex = lastIntReadPercentage/2;
-	if(latency> (uint32_t)maxLatencyPerRdRatio[curveDataIndex])
-		return latency - (uint32_t)maxLatencyPerRdRatio[curveDataIndex];
-	else
-		return 0;
+    // Calculate the index for the current read percentage
+    uint32_t curveDataIndex = lastIntReadPercentage / 2;
+
+    // Determine if there's a latency penalty due to bandwidth exceeding the maximum
+    if (latency > static_cast<uint32_t>(maxLatencyPerRdRatio[curveDataIndex]))
+        return latency - static_cast<uint32_t>(maxLatencyPerRdRatio[curveDataIndex]);
+    else
+        return 0;
 }
-
-

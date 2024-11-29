@@ -1,3 +1,6 @@
+#!/bin/bash
+
+# Clear the terminal for better readability
 clear
 
 current_folder=$(basename "$PWD")
@@ -14,32 +17,35 @@ if [ "$current_folder" != "Standalone" ]; then
     fi
 fi
 
+# Compile the standalone Mess simulator
 make
 
+# Output information about the experiment
 echo "\n"
-
 echo "increasing the bandwidth and printing the respective latency:\n"
-
 echo "latency [ns], issue bandwidth [GB/s]\n"
 
+echo "\n"
 echo "Skylake with cxl"
-frequencyCPU=2.1
-frequencyCurve=2.1
-onChipLatency=0
+frequencyCPU=2.1            # Frequency of the simulated CPU in GHz
+frequencyCurve=2.1          # Frequency of the CPU used to generate the curves in GHz
+onChipLatency=0             # Latency (in nanoseconds) from the CPU core to the memory controller
 
-./build/mess_example ./curves_src/cxl 20000 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 200 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 100 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 50 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 20 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 10 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 9 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 8 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 7 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 6 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 5 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 4 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 3 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 2 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 1 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./curves_src/cxl 0 $frequencyCPU $frequencyCurve $onChipLatency
+# Run the Mess simulator for varying pause values
+# Each pause value determines the bandwidth, with smaller values issuing higher bandwidth
+./build/mess_example ./data/cxl 20000 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 200 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 100 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 50 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 20 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 10 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 9 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 8 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 7 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 6 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 5 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 4 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 3 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 2 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 1 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 0 $frequencyCPU $frequencyCurve $onChipLatency

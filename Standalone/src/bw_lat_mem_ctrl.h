@@ -35,102 +35,176 @@
 
 #include <fstream>
 #include <iostream>
-
-#include <cmath> // for floor function on implement round
-#include <stdint.h> // for uint32_t
+#include <cmath>        // for floor and round functions
+#include <cstdint>      // for uint32_t and other integer types
 #include <cassert>
 #include <vector>
 #include <string>
 
-
 using namespace std;
 
-
+/**
+ * @brief This class models a bandwidth-latency memory controller.
+ * 
+ * The controller uses pre-characterized bandwidth-latency curves to model
+ * how memory behaves under various read/write traffic conditions.
+ * 
+ * This is designed to be used within CPU simulators, enabling fast and accurate
+ * memory performance simulation. It abstracts memory system complexities, using 
+ * pre-measured or simulated curves as its input.
+ */
 class BwLatMemCtrl {
-	private:
-		// bound latency
-		uint32_t latency;
+private:
 
-		// latency for core --> memory controller  (in cycles)
-		double onCoreLatency;
+    /**
+     * @brief Latency metrics related to the core and memory.
+     */
+    double onCoreLatency;           ///< Latency from the core to the memory controller (cycles).
+    double leadOffLatency;          ///< Minimum achievable latency for memory access (cycles).
+    double maxBandwidth;            ///< Maximum bandwidth (accesses per cycle).
+    double maxLatency;              ///< Maximum latency for high contention scenarios (cycles).
 
-		double leadOffLatency, maxBandwidth, maxLatency;
+    /**
+     * @brief Current latency for the memory system (cycles).
+     * This value is dynamically updated based on memory traffic.
+     */
+    uint32_t latency;
+    /**
+     * @brief Adjustments for on-chip latency.
+     * 
+     * Curves typically include the latency from the core to the main memory. 
+     * However, memory simulators only simulate the latency from the memory 
+     * controller to main memory. This value is subtracted from curve latencies 
+     * to align them with simulation requirements.
+     */
+    double onChipLatency;
 
+    /**
+     * @brief PID-like controller metrics for smooth latency-bandwidth convergence.
+     * 
+     * These values ensure that updates to latency and bandwidth are gradual
+     * and avoid abrupt transitions, especially when the system is under heavy load.
+     */
+    double lastEstimatedBandwidth;  ///< The most recently estimated bandwidth.
+    double lastEstimatedLatency;    ///< The most recently estimated latency.
+    double overflowFactor;          ///< Penalty factor for bandwidth overflow scenarios.
 
-		// onChipLatency is very important. Curves usually includes all the latency from core to main memory.
-		// However, a memory simulator only return tha latency from memory controller to the main memory.
-		// therefore, the data in the curves should be adjusted by onChipLatency. 
-		// on other words: simulatorLatency = curveLatency - onChipLatency
-		// if we consider onChipLatency we are not adding much error to the system. 
-		// this latency does not change significantly during the Mess benchmarking of actual system. 
-		double onChipLatency;
+    /**
+     * @brief Simulation and curve-specific frequency metrics.
+     */
+    double frequencyCPU;            ///< Frequency (GHz) of the simulated CPU.
+    double inputCurveFrequency;     ///< Frequency (GHz) at which the curves were generated.
 
+    /**
+     * @brief Pre-characterized bandwidth-latency curve data.
+     * 
+     * - `curves_data` stores the curves:
+     *   - First dimension: Read percentage (0% to 100%, in 2% increments).
+     *   - Second dimension: Bandwidth-latency pairs for each read percentage.
+     * - `maxBandwidthPerRdRatio`: Maximum bandwidth for each read percentage.
+     * - `maxLatencyPerRdRatio`: Maximum latency for each read percentage.
+     */
+    vector<vector<vector<double>>> curves_data;
+    vector<double> maxBandwidthPerRdRatio;
+    vector<uint32_t> maxLatencyPerRdRatio;
 
-		// we need this two numbers to define a PID-like controller to converge smoothly.
-		double lastEstimatedBandwidth;
-		double lastEstimatedLatency;
+    /**
+     * @brief Path to the curve data directory.
+     */
+    string curveAddress;
 
-		// overflow factor needs to be play with
-		double overflowFactor;
+    /**
+     * @brief Counters for tracking memory access behavior.
+     * 
+     * These are used to calculate bandwidth and update latency at the end of 
+     * each measurement window.
+     */
+    uint32_t currentWindowAccessCount;      ///< Total memory accesses in the current window.
+    uint32_t currentWindowAccessCount_wr;   ///< Total write accesses in the current window.
+    uint32_t currentWindowAccessCount_rd;   ///< Total read accesses in the current window.
+    uint64_t currentWindowStartCycle;       ///< Start cycle of the current measurement window.
 
+    /**
+     * @brief Miscellaneous parameters.
+     */
+    uint32_t lastIntReadPercentage;         ///< Last integer value of read percentage.
+    uint32_t curveWindowSize;               ///< Size of the measurement window (smaller is more accurate but slower).
 
-		//  The latency unit of input curves is in cycles, and we need to know the frequency in which they are generated,
-		//	Also the frequcy of our currecnt CPU simulator is needed to simulate everything correctly. 
-		//	In simulators everything is in cycle, so we should be very careful. 
-		double frequencyCPU; // frequency of the CPU
-		double inputCurveFrequency; // frequency of the input curve data
-		
-		// fisrt dimention: read percentafe
-		// second dimention data for each read percentage
-		// second dimention has two value 
-		// [0]: bandwidth (accesses/cycles) 
-		// [1]: latency (cycles)
-		vector<vector<vector<double> > > curves_data;
+    /**
+     * @brief Updates latency at the end of each measurement window.
+     * 
+     * This method calculates the average bandwidth and adjusts the latency
+     * based on the pre-characterized curves.
+     * 
+     * @param currentWindowEndCycle The cycle at which the current window ends.
+     */
+    void updateLatency(uint64_t currentWindowEndCycle);
 
-		// maximum bandwidth and latency for the corresponding rd_percentage
-		vector<double> maxBandwidthPerRdRatio;
-		vector<uint32_t> maxLatencyPerRdRatio;
+    /**
+     * @brief Normalizes curves to ensure lead-off latency consistency.
+     * 
+     * This is a one-time adjustment applied to the pre-characterized curves
+     * to ensure that all read percentages have the same initial latency.
+     */
+    void fitTheCurves();
 
-		// address of the curve data
-		string curveAddress;
+    /**
+     * @brief Searches for the appropriate latency for a given bandwidth and read percentage.
+     * 
+     * This method interpolates between points in the curve to determine
+     * the latency corresponding to a specific bandwidth and read percentage.
+     * 
+     * @param bandwidth Bandwidth in accesses per cycle.
+     * @param readPercentage Percentage of read operations (0% to 100%).
+     * @return Calculated latency in cycles.
+     */
+    uint32_t searchForLatencyOnCurve(double bandwidth, double readPercentage);
 
-		// counters for measuring the access count in a window of accesses
-		uint32_t currentWindowAccessCount;
-		uint32_t currentWindowAccessCount_wr;
-		uint32_t currentWindowAccessCount_rd;
-		
-		// A metaparameter for our simulator. the smaller, the more accurate, but the slower
-		// For ZSim, we should also consider that it cannot be smaller than each phase size of the ZSim
-		uint32_t curveWindowSize;
-		
-		// it hols the value of the current Window. 
-		// it will be used to calculate the bandwidth for updating the latency at the end of the window
-		uint64_t currentWindowStartCycle;
+public:
+    /**
+     * @brief Constructor to initialize the memory controller.
+     * 
+     * This method loads the bandwidth-latency curves from the specified directory
+     * and prepares the memory controller for simulation.
+     * 
+     * @param curveAddress Path to the directory containing bandwidth-latency curve files.
+     * @param curveFrequency Frequency (GHz) at which the curves were generated.
+     * @param curveWindowSize Size of the measurement window (number of accesses).
+     * @param frequencyRate Frequency (GHz) of the simulated CPU.
+     * @param _onCoreLatency Latency from the core to the memory controller (cycles).
+     */
+    BwLatMemCtrl(const std::string& _curveAddress, double _curveFrequency, uint32_t _curveWindowSize, double frequencyRate, double _onCoreLatency);
 
+    /**
+     * @brief Simulates a memory access.
+     * 
+     * This method is called for every memory access in the simulation. It calculates
+     * the latency for the access based on the current state of the memory system.
+     * 
+     * @param accessCycle The cycle at which the memory access occurs.
+     * @param isWrite Flag indicating whether the access is a write (true) or read (false).
+     * @return The latency of the memory access (in cycles).
+     */
+    uint64_t access(uint64_t accessCycle, bool isWrite);
 
-		uint32_t lastIntReadPercentage;
+    /**
+     * @brief Retrieves the lead-off latency.
+     * 
+     * Lead-off latency is the minimum achievable latency for memory access.
+     * 
+     * @return Lead-off latency in cycles.
+     */
+    uint32_t getLeadOffLatency();
 
-
-        // update the bound phase
-        void updateLatency(uint64_t currentWindowEndCyclen);
-        // a hack to make lead-off latency of all rd_percentage equal. 
-        void fitTheCurves();
-        // use the data of the curves to find appropriate latency
-        uint32_t searchForLatencyOnCurve(double bandwidth, double readPercentage);
-
-
-	public:
-		BwLatMemCtrl(string curveAddress, double curveFrequency, uint32_t curveWindowSize, double frequencyRate, double _onCoreLatency);
-		
-		// the function to access the memory upon each read or write
-		uint64_t access(uint64_t accessCycle, bool isWrite);
-		// for ensuring the quality of service of memory system 
-		uint64_t GetQsMemLoadCycleLimit();
-		uint32_t getLeadOffLatency();
-		
+    /**
+     * @brief Retrieves the memory load penalty for QoS simulations.
+     * 
+     * This value represents the additional latency caused by exceeding
+     * the maximum bandwidth of the memory system.
+     * 
+     * @return The latency penalty in cycles.
+     */
+    uint64_t GetQsMemLoadCycleLimit();
 };
-
-
-
 
 #endif  // BW_LAT_MEM_CTRL_H_
