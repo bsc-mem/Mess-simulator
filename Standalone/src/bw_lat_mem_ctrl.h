@@ -90,10 +90,9 @@ private:
     double overflowFactor;          ///< Penalty factor for bandwidth overflow scenarios.
 
     /**
-     * @brief Simulation and curve-specific frequency metrics.
+     * @brief Simulation frequency metrics.
      */
     double frequencyCPU;            ///< Frequency (GHz) of the simulated CPU.
-    double inputCurveFrequency;     ///< Frequency (GHz) at which the curves were generated.
 
     /**
      * @brief Pre-characterized bandwidth-latency curve data.
@@ -168,12 +167,11 @@ public:
      * and prepares the memory controller for simulation.
      * 
      * @param curveAddress Path to the directory containing bandwidth-latency curve files.
-     * @param curveFrequency Frequency (GHz) at which the curves were generated.
      * @param curveWindowSize Size of the measurement window (number of accesses).
      * @param frequencyRate Frequency (GHz) of the simulated CPU.
      * @param _onCoreLatency Latency from the core to the memory controller (cycles).
      */
-    BwLatMemCtrl(const std::string& _curveAddress, double _curveFrequency, uint32_t _curveWindowSize, double frequencyRate, double _onCoreLatency);
+    BwLatMemCtrl(const std::string& _curveAddress, uint32_t _curveWindowSize, double frequencyRate, double _onCoreLatency);
 
     /**
      * @brief Simulates a memory access.

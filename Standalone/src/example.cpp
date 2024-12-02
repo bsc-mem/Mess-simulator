@@ -72,7 +72,7 @@ void printUsage() {
  */
 int main(int argc, char* argv[]) {
     // Validate argument count
-    if (argc != 6) {
+    if (argc != 5) {
         printUsage();
         return 1;
     }
@@ -82,8 +82,7 @@ int main(int argc, char* argv[]) {
         std::string curvePath = argv[1];               // Path to bandwidth-latency curve file
         int pauseValue = std::stoi(argv[2]);           // Pause between operations (controls bandwidth)
         float cpuFrequency = std::stof(argv[3]);       // CPU frequency for the simulation
-        float curveFrequency = std::stof(argv[4]);     // Frequency used to generate the input curves
-        float onChipLatency = std::stof(argv[5]);      // On-chip latency to adjust the curve latency values
+        float onChipLatency = std::stof(argv[4]);      // On-chip latency to adjust the curve latency values
 
         // Validate pause value
         if (pauseValue < 0) {
@@ -92,7 +91,7 @@ int main(int argc, char* argv[]) {
 
         // Create an instance of the memory controller
         // BwLatMemCtrl handles memory latency and bandwidth computations based on input curves
-        std::unique_ptr<BwLatMemCtrl> memoryController(new BwLatMemCtrl(curvePath, curveFrequency, 1000, cpuFrequency, onChipLatency));
+        std::unique_ptr<BwLatMemCtrl> memoryController(new BwLatMemCtrl(curvePath, 1000, cpuFrequency, onChipLatency));
 
         uint32_t latency = 0;    // Variable to store the latency of memory operations
         uint64_t cycle = 0;      // Simulated clock cycle count

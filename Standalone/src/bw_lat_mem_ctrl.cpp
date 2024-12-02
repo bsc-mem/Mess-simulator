@@ -37,7 +37,7 @@ static double roundDouble(double d) {
     return std::floor(d + 0.5);
 }
 
-BwLatMemCtrl::BwLatMemCtrl(const std::string& _curveAddress, double _curveFrequency,
+BwLatMemCtrl::BwLatMemCtrl(const std::string& _curveAddress,
                            uint32_t _curveWindowSize, double frequencyRate, double _onCoreLatency)
     : curveAddress(_curveAddress),
       curveWindowSize(_curveWindowSize),
@@ -80,8 +80,8 @@ BwLatMemCtrl::BwLatMemCtrl(const std::string& _curveAddress, double _curveFreque
             inputBandwidth = (inputBandwidth / 64) / (frequencyCPU * 1000);
 
             // Adjust input latency based on the CPU frequency
-            // The input latency is in cycles at the curve's frequency; convert it to the CPU's cycles
-            inputLatency *= (frequencyCPU / _curveFrequency);
+            // The input latency is in ns; convert it to the CPU's cycles
+            inputLatency *= frequencyCPU;
 
             // Adjust latency based on on-core latency
             // onCoreLatency = 0 for curves measured from the memory controller

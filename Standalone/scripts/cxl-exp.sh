@@ -28,24 +28,23 @@ echo "latency [ns], issue bandwidth [GB/s]\n"
 echo "\n"
 echo "Skylake with cxl"
 frequencyCPU=2.1            # Frequency of the simulated CPU in GHz
-frequencyCurve=2.1          # Frequency of the CPU used to generate the curves in GHz
 onChipLatency=0             # Latency (in nanoseconds) from the CPU core to the memory controller
 
 # Run the Mess simulator for varying pause values
 # Each pause value determines the bandwidth, with smaller values issuing higher bandwidth
-./build/mess_example ./data/cxl 20000 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 200 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 100 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 50 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 20 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 10 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 9 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 8 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 7 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 6 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 5 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 4 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 3 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 2 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 1 $frequencyCPU $frequencyCurve $onChipLatency
-./build/mess_example ./data/cxl 0 $frequencyCPU $frequencyCurve $onChipLatency
+./build/mess_example ./data/cxl 20000 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 200 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 100 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 50 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 20 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 10 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 9 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 8 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 7 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 6 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 5 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 4 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 3 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 2 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 1 $frequencyCPU  $onChipLatency
+./build/mess_example ./data/cxl 0 $frequencyCPU  $onChipLatency

@@ -6,7 +6,7 @@ This directory contains pre-generated bandwidth-latency curves for different sys
 
 Each curve file (bwlat_X.txt) contains two columns:
 - Column 1: Bandwidth (MB/s).
-- Column 2: Latency (cycles).
+- Column 2: Latency (ns).
 
 Here is an example of the content from one curve file:
 

@@ -115,19 +115,19 @@ bash scripts/ddr4-exp.sh
 
 These scripts:
 - Automatically compile the simulator (if not already compiled).
-- Set up key parameters (e.g., pause, frequencyCPU, frequencyCurve).
+- Set up key parameters (e.g., pause, frequencyCPU).
 - Run the simulator across a range of configurations.
 
 ##### 2. Manual Execution
 
 Alternatively, you can run the simulator directly using the executable:
 ```bash
-./build/mess_example <curve_path> <pause_value> <frequencyCPU> <frequencyCurve> <onChipLatency>
+./build/mess_example <curve_path> <pause_value> <frequencyCPU> <onChipLatency>
 ```
 
 For example:
 ```bash
-./build/mess_example ./data/skylake-ddr4 20000 2.1 2.1 51
+./build/mess_example ./data/skylake-ddr4 20000 2.1 51
 ```
 
 ---
@@ -147,10 +147,7 @@ The simulator requires several input parameters to model memory behavior accurat
 3. ```<frequencyCPU>```:
     - Frequency of the simulated CPU in GHz.
     - Used to scale latency and bandwidth based on CPU clock speed.
-4. ```<frequencyCurve>```:
-    - CPU frequency (in GHz) used to generate the input bandwidth-latency curves.
-    - This ensures the simulator scales latency values (stored as cycles) correctly.
-5. ```<onChipLatency>```:
+4. ```<onChipLatency>```:
     - The latency (in nanoseconds) from the CPU core to the memory controller.
     - Subtracted from the curve values to isolate memory controller-to-main-memory latency.
 
