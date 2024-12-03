@@ -2,7 +2,7 @@
 
 This directory contains pre-generated bandwidth-latency curves for different systems and configurations. These curves are fundamental to the Mess Framework, as they model memory system performance under varying traffic intensities. Each folder corresponds to a specific system, with individual curves stored in files named bwlat_X.txt, where X represents the read percentage for that curve.
 
-### File Format
+### File Format
 
 Each curve file (bwlat_X.txt) contains two columns:
 - Column 1: Bandwidth (MB/s).
