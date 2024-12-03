@@ -35,7 +35,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "bw_lat_mem_ctrl.h"
+#include "mess_mem_ctrl.h"
 
 // Simulation constants
 constexpr uint64_t DEFAULT_LOOP_SIZE = 1200000;  // Number of iterations for the main simulation loop
@@ -56,7 +56,7 @@ uint64_t simulateCycle(uint64_t currentCycle, uint64_t pause) {
  * @brief Prints usage instructions for the program.
  */
 void printUsage() {
-    std::cerr << "Usage: ./example <curve_path> <pause_value> <cpu_frequency> <curve_frequency> <on_chip_latency>" << std::endl;
+    std::cerr << "Usage: ./example <curve_path> <pause_value> <cpu_frequency> <on_chip_latency>" << std::endl;
 }
 
 /**
@@ -90,8 +90,8 @@ int main(int argc, char* argv[]) {
         }
 
         // Create an instance of the memory controller
-        // BwLatMemCtrl handles memory latency and bandwidth computations based on input curves
-        std::unique_ptr<BwLatMemCtrl> memoryController(new BwLatMemCtrl(curvePath, 1000, cpuFrequency, onChipLatency));
+        // MessMemCtrl handles memory latency and bandwidth computations based on input curves
+        std::unique_ptr<MessMemCtrl> memoryController(new MessMemCtrl(curvePath, 1000, cpuFrequency, onChipLatency));
 
         uint32_t latency = 0;    // Variable to store the latency of memory operations
         uint64_t cycle = 0;      // Simulated clock cycle count

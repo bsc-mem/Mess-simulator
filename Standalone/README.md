@@ -61,7 +61,7 @@ This folder contains pre-defined scripts to run experiments for various memory c
 #### ```src/``` 
 This directory contains the core logic of the standalone simulator.
 
-- **`bw_lat_mem_ctrl.cpp`** and **`bw_lat_mem_ctrl.h`** implement the simulator's main functionality.
+- **`mess_mem_ctrl.cpp`** and **`mess_mem_ctrl.h`** implement the simulator's main functionality.
 - **`example.cpp`** serves as an example file, demonstrating how to set up and use the simulator.
 
 Refer to the code in `src/` if you wish to customize the simulator or integrate it into other systems.
@@ -100,7 +100,7 @@ The example program demonstrates the core functionality of the Mess simulator, i
 2. Simulate memory behavior for a specific configuration (e.g., DDR4 at a given CPU frequency).
 3. Output key metrics, such as latency and bandwidth, for various pause values.
 
-The example program runs read operations over multiple iterations and uses the BwLatMemCtrl class to model memory system behavior. Users can modify this file to experiment with different workloads, configurations, or technologies.
+The example program runs read operations over multiple iterations and uses the MessMemCtrl class to model memory system behavior. Users can modify this file to experiment with different workloads, configurations, or technologies.
 
 #### Running the Simulator
 
@@ -134,7 +134,7 @@ For example:
 
 ## 4. Simulation Guide
 
-The simulator requires several input parameters to model memory behavior accurately. Here’s an explanation of each:
+The Mess simulator requires several input parameters to model memory behavior accurately. Here’s an explanation of each:
 
 #### How It Works
 
@@ -153,8 +153,8 @@ The simulator requires several input parameters to model memory behavior accurat
 
 #### How It Works
 
-1. The simulator processes the bandwidth-latency curves and adjusts latency values based on the provided CPU frequencies.
-2. It simulates memory requests using the **BwLatMemCtrl** class, calculating latency and bandwidth for each configuration.
+1. The Mess simulator processes the bandwidth-latency curves and adjusts latency values based on the provided CPU frequencies.
+2. It simulates memory requests using the **MessMemCtrl** class, calculating latency and bandwidth for each configuration.
 3. Outputs include:
     - **Latency (in nanoseconds)**: Calculated based on CPU frequency and curve data.
     - **Bandwidth (in GB/s)**: Determined by the issue rate and pause value.
@@ -163,7 +163,7 @@ The simulator requires several input parameters to model memory behavior accurat
 
 ## 5. Example Outputs
 
-The simulator outputs latency (ns) and bandwidth (GB/s) for each run. Here’s an example output for DDR4 with different pause values:
+The Mess simulator outputs latency (ns) and bandwidth (GB/s) for each run. Here’s an example output for DDR4 with different pause values:
 
 ```txt
 90.00 ns, 67.20 GB/s
