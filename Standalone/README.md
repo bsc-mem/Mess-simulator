@@ -16,7 +16,7 @@ The Standalone Mess Simulator is a simplified tool for evaluating memory perform
 
 
 
-<p align="center"><img src="../figures/mess_general.png" width="80%" height="80%"></p> <p align="center"><i>Figure 1: Overview of the Standalone Mess Simulator. The Workload Generator interacts with the Mess Standalone Simulator, with CPU-Parameters and the memory load configuration.</i></p>
+<p align="center"><img src="../figures/mess_general.png" width="70%" height="80%"></p> <p align="center"><i>Figure 1: Overview of the Standalone Mess Simulator. The Workload Generator interacts with the Mess Standalone Simulator, with CPU-Parameters and the memory load configuration.</i></p>
 
 This simulator is designed for standalone use, allowing users to study memory behavior without the complexity of integrating it into larger CPU or system simulators.
 
@@ -31,7 +31,7 @@ The simulator evaluates memory performance through the following steps:
 
 1. **Input Configuration:** Users specify memory access parameters such as traffic intensity, CPU frequency, and bandwidth-latency curve selection.
 2. **Simulation Execution:** The simulator runs simulations based on the input parameters, modeling how memory latency and bandwidth behave under different conditions.
-<p align="center"><img src="../figures/mess_specific.png" width="80%" height="80%"></p> <p align="center"><i>Figure 2: Internal structure of the Standalone Mess Simulator. This detailed view expands the Mess Simulator block to illustrate its main levels: workload handling, curve-based modeling, and memory response evaluation.</i></p>
+<p align="center"><img src="../figures/mess_specific.png" width="95%" height="90%"></p> <p align="center"><i>Figure 2: Internal structure of the Standalone Mess Simulator. This detailed view expands the Mess Simulator block to illustrate its main levels: workload handling, curve-based modeling, and memory response evaluation.</i></p>
 
 ---
 
