@@ -2,8 +2,8 @@
 
 ## Contents
   [1. Overview](#1-overview) \
-  [2. Directory Organization](#2-directory-organization) \
-  [3. Simulation Parameters](#3-simulation-parameters) \
+  [2. Simulation Parameters](#3-simulation-parameters) \
+  [3. Directory Organization](#2-directory-organization) \
   [4. Build and Run](#4-build-and-run) \
   [5. Example Outputs](#5-example-outputs) 
 
@@ -16,7 +16,7 @@ The Standalone Mess Simulator is a simplified tool for evaluating memory perform
 
 
 
-<p align="center"><img src="../figures/mess_general.png" width="70%" height="80%"></p> <p align="center"><i>Figure 1: Overview of the Standalone Mess Simulator. The Workload Generator interacts with the Mess Standalone Simulator, with CPU-Parameters and the memory load configuration.</i></p>
+<p align="center"><img src="../figures/mess_general.png" width="70%" height="80%"></p> <p align="center"><i>Figure 1: Overview of the Standalone Mess Simulator. The Workload Generator initialize the Mess Standalone Simulator with input configuration values. Then, it interacts with the Mess Standalone Simulator, by sending memory accesses and receiving their memory access latencies.</i></p>
 
 This simulator is designed for standalone use, allowing users to study memory behavior without the complexity of integrating it into larger CPU or system simulators.
 
@@ -35,10 +35,40 @@ The simulator evaluates memory performance through the following steps:
 
 ---
 
-## 2. Directory Organization
+## 2. Simulation Parameters
+
+The Mess simulator requires several input parameters to model memory behavior accurately. These need to be given to the function calls made from the load generator. Here’s an explanation of each:
+
+#### Parameters
+
+1. ```<curve_path>```:
+    - Path to the memory bandwidth-latency curve file (e.g., ./data/skylake-ddr4).
+    - The simulator will use this curve as a reference
+2. ```<pause_value>``` [REWRITE]:
+    - Controls the memory issue rate.
+    - Smaller values simulate higher bandwidth, while larger values simulate lower bandwidth.
+3. ```<frequencyCPU>```:
+    - Frequency of the simulated CPU in GHz.
+    - Used to convert the timing data from nanoseconds (ns) in the curves to cycles, as simulators operate on a per-cycle basis.
+4. ```<onChipLatency>```:
+    - The latency (in nanoseconds) from the CPU core to the memory controller.
+    - Subtracted from the curve values to isolate memory controller-to-main-memory latency.
+
+#### How It Works
+
+1. The Mess simulator processes the memory bandwidth-latency curves and adjusts latency values based on the provided CPU frequency and onChipLatency.
+2. It simulates memory requests using the **MessMemCtrl** class, calculating latency and bandwidth for each configuration.
+3. Outputs are made up of:
+	- **Bandwidth (in GB/s)**: Determined by the issue rate and pause value.
+    - **Latency (in nanoseconds)**: Calculated based on CPU frequency and curve data.
+
+
+---
+
+## 3. Directory Organization
 
 <p align="center"><img src="../figures/folder_structure.png" width="60%" height="60%"></p>
-<p align="center"><i>Figure 2: Structure of the Standalone Simulator and its main components.</i></p>
+<p align="center"><i>Figure 3: Structure of the Standalone Simulator and its main components.</i></p>
 
 #### ```data/```
 This directory contains measured memory **bandwidth-latency curves** for various memory technologies and CPUs, such as DDR4, DDR5, HBM2, and CXL. These curves serve as input to the simulator.
@@ -74,34 +104,7 @@ This directory is not included in the git but will be created during compilation
 
 Ensure you have compiled the simulator with ``make`` first before running any experiments. To build the simulator go to Section [4. Build and Run](#4-build-and-run)
 
----
 
-## 3. Simulation Parameters
-
-The Mess simulator requires several input parameters to model memory behavior accurately. These need to be given to the function calls made from the load generator. Here’s an explanation of each:
-
-#### Parameters
-
-1. ```<curve_path>```:
-    - Path to the memory bandwidth-latency curve file (e.g., ./data/skylake-ddr4).
-    - The simulator will use this curve as a reference
-2. ```<pause_value>``` [REWRITE]:
-    - Controls the memory issue rate.
-    - Smaller values simulate higher bandwidth, while larger values simulate lower bandwidth.
-3. ```<frequencyCPU>```:
-    - Frequency of the simulated CPU in GHz.
-    - Used to convert the timing data from nanoseconds (ns) in the curves to cycles, as simulators operate on a per-cycle basis.
-4. ```<onChipLatency>```:
-    - The latency (in nanoseconds) from the CPU core to the memory controller.
-    - Subtracted from the curve values to isolate memory controller-to-main-memory latency.
-
-#### How It Works
-
-1. The Mess simulator processes the memory bandwidth-latency curves and adjusts latency values based on the provided CPU frequencies.
-2. It simulates memory requests using the **MessMemCtrl** class, calculating latency and bandwidth for each configuration.
-3. Outputs are made up of:
-    - **Latency (in nanoseconds)**: Calculated based on CPU frequency and curve data.
-    - **Bandwidth (in GB/s)**: Determined by the issue rate and pause value.
 
 ---
 
@@ -181,11 +184,11 @@ The program models read operations over multiple iterations and uses the `MessMe
 The Mess simulator outputs latency (ns) and bandwidth (GB/s) for each run. Here’s an example output for DDR4 with different pause values:
 
 ```txt
-90.00 ns, 67.20 GB/s
-50835.71 ns, 134.40 GB/s
-50916.19 ns, 192.00 GB/s
-50945.71 ns, 268.80 GB/s
-50967.14 ns, 448.00 GB/s
+67.20 GB/s, 90.00 ns
+134.40 GB/s, 50835.71 ns
+192.00 GB/s, 50916.19 ns
+268.80 GB/s, 50945.71 ns
+448.00 GB/s, 50967.14 ns
 ```
 
 #### Interpreting the Results
