@@ -109,8 +109,7 @@ int main(int argc, char* argv[]) {
         // Output the results
         if (pauseValue != 0) {
             std::cout << std::fixed << std::setprecision(2);
-            std::cout << latency / cpuFrequency << " ns, " 
-                      << (DEFAULT_INNER_LOOP_SIZE * cpuFrequency * 64 / pauseValue) << " GB/s" << std::endl;
+            std::cout << (DEFAULT_INNER_LOOP_SIZE * cpuFrequency * 64 / pauseValue) << " GB/s, " << latency / cpuFrequency << " ns"  << std::endl;
         }
     } catch (const std::exception& ex) {
         // Catch and display any runtime errors
