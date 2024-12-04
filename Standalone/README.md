@@ -194,7 +194,7 @@ The Mess simulator outputs latency (ns) and bandwidth (GB/s) for each run. Hereâ
     - At 67.20 GB/s, the latency is 90.00 ns.
     - At 448.00 GB/s, the latency increases significantly to 50967.14 ns.
 
-Refer to the [Mess Paper](https://arxiv.org/abs/2405.10170) for a more detailed analysis.
+For further analysis of real hardware memory system behaviour please refer to the [Mess Paper](https://arxiv.org/abs/2405.10170).
 
 
 ####  Notes
