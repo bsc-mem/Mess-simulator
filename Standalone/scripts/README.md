@@ -1,6 +1,8 @@
-# Mess Simulator Scripts
+# Standalone Mess Simulator Scripts
 
-The `scripts/` directory contains pre-defined scripts for running the standalone Mess simulator with various memory technologies. These scripts allow users to quickly simulate bandwidth-latency behavior without needing to manually configure parameters for each experiment. Additionally, users can create their own custom scripts by following the provided template and instructions.
+The `scripts/` directory contains pre-defined scripts for building and running the Standalone Mess Simulator with various memory technologies. These scripts allow users to quickly simulate bandwidth-latency behavior without needing to manually configure parameters for each experiment. 
+
+Additionally, users can create their own custom scripts by following the provided template and instructions.
 
 ---
 
@@ -9,19 +11,21 @@ The `scripts/` directory contains pre-defined scripts for running the standalone
 The following scripts are included in the `scripts/` directory:
 
 - **`cxl-exp.sh`**  
-  Runs the standalone Mess simulator for **CXL (Compute Express Link)** memory expanders.
+  Runs the Standalone Mess Simulator for **CXL (Compute Express Link)** memory expanders.
 
 - **`ddr4-exp.sh`**  
-  Simulates the behavior of **DDR4** memory on the standalone Mess simulator.
+  Simulates the behavior of **DDR4** memory on the Standalone Mess Simulator.
 
 - **`ddr5-exp.sh`**  
-  Simulates the behavior of **DDR5** memory on the standalone Mess simulator.
+  Simulates the behavior of **DDR5** memory on the Standalone Mess Simulator.
 
 - **`hbm-exp.sh`**  
   Runs the simulator for **HBM2 (High Bandwidth Memory)** technology.
 
 - **`run-all.sh`**  
   A convenience script that executes **all predefined scripts** sequentially, allowing for simulations of all the above technologies in one go.
+
+All the predefined scripts run the code inside ``src/example.cpp`` with different parameters.
 
 ---
 
@@ -39,7 +43,7 @@ Each script includes predefined parameters for the memory technology it targets.
    ```
 
 4. The script will:
-   - Compile the standalone Mess simulator (if not already compiled).
+   - Compile the Standalone Mess Simulator (if not already compiled).
    - Simulate the memory behavior for various configurations (using multiple pause values).
 
 ---
@@ -62,7 +66,7 @@ All scripts follow a similar structure. Below is an explanation of the key secti
    fi
    ```
 
-2. **Compilation**: The script compiles the standalone Mess simulator using `make`, ensuring the executable is ready:
+2. **Compilation**: The script compiles the Standalone Mess Simulator using `make`, ensuring the executable is ready:
 
    ```bash
    make
@@ -78,7 +82,7 @@ All scripts follow a similar structure. Below is an explanation of the key secti
    onChipLatency=51
    ```
 
-4. **Simulation Execution**: Runs the Mess simulator for multiple pause values to simulate different bandwidths:
+4. **Simulation Execution**: Runs the Mess Simulator for multiple pause values to simulate different bandwidths:
 
    ```bash
    ./build/mess_example ./curves_src/skylake-ddr4 20000 $frequencyCPU $onChipLatency

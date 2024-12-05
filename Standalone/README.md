@@ -44,7 +44,7 @@ The Mess simulator requires several input parameters to model memory behavior ac
 1. ```<curve_path>```:
     - Path to the memory bandwidth-latency curve file (e.g., ./data/skylake-ddr4).
     - The simulator will use this curve as a reference
-2. ```<pause_value>``` [REWRITE]:
+2. ```<pause_value>``` **[REWRITE DESCRIPTION]**:
     - Controls the memory issue rate.
     - Smaller values simulate higher bandwidth, while larger values simulate lower bandwidth.
 3. ```<frequencyCPU>```:
