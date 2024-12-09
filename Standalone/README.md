@@ -12,7 +12,7 @@
 ## 1. Overview
 
 ### What is the Standalone Mess Simulator?
-The Standalone Mess Simulator is a simplified tool for evaluating memory performance based on measured memory bandwidth-latency curves. It is part of the broader Mess Simulation framework, detailed in the [Mess Paper](https://arxiv.org/abs/2405.10170).
+The Standalone Mess Simulator is a simplified tool for evaluating memory performance based on measured memory bandwidth-latency curves. It is part of the broader Mess Simulation framework, detailed in the [Mess Paper](https://ieeexplore.ieee.org/document/10764561).
 
 
 
@@ -197,7 +197,7 @@ The Mess simulator outputs latency (ns) and bandwidth (GB/s) for each run. Hereâ
     - At 67.20 GB/s, the latency is 90.00 ns.
     - At 448.00 GB/s, the latency increases significantly to 50967.14 ns.
 
-For further analysis of real hardware memory system behaviour please refer to the [Mess Paper](https://arxiv.org/abs/2405.10170).
+For further analysis of real hardware memory system behaviour please refer to the [Mess Paper](https://ieeexplore.ieee.org/document/10764561).
 
 
 ####  Notes

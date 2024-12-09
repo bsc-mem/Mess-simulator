@@ -1,6 +1,6 @@
 # Memory Bandwidth-Latency Curves
 
-This directory contains measured memory bandwidth-latency curves for different systems and configurations. These curves are fundamental to the Mess Framework, as they model memory system performance under varying traffic intensities. For more detail refer to the [Mess Paper](https://arxiv.org/abs/2405.10170).
+This directory contains measured memory bandwidth-latency curves for different systems and configurations. These curves are fundamental to the Mess Framework, as they model memory system performance under varying traffic intensities. For more detail refer to the [Mess Paper](https://ieeexplore.ieee.org/document/10764561).
 
 Each folder in this directory corresponds to a specific system, with individual curves stored in files named bwlat_X.txt, where X represents the read percentage for that curve.
 
@@ -62,4 +62,4 @@ Each folder corresponds to a specific system and configuration and contains mult
 ### `cxl`
 - **System**: CXL (Compute Express Link) memory expanders.
 - **Data Source**: Generated through detailed simulations using Micron technology.
-- **Benchmarking details**: Refer to the [Mess Paper](https://arxiv.org/abs/2405.10170) for detailed analysis.
+- **Benchmarking details**: Refer to the [Mess Paper](https://ieeexplore.ieee.org/document/10764561) for detailed analysis.
