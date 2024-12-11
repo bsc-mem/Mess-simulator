@@ -44,15 +44,32 @@ The Mess simulator requires several input parameters to model memory behavior ac
 1. ```<curve_path>```:
     - Path to the memory bandwidth-latency curve file (e.g., ./data/skylake-ddr4).
     - The simulator will use this curve as a reference
-2. ```<pause_value>``` **[REWRITE DESCRIPTION]**:
-    - Controls the memory issue rate.
-    - Smaller values simulate higher bandwidth, while larger values simulate lower bandwidth.
+2. ```<pause_value>```:
+    - Controls the issue rate of memory instructions by inserting `nop` instructions between them. 
+	- The *pause* value specifies the number of *nop* instructions inserted between every six memory instructions. For instance, if `pause=100`, six *load* instructions are followed by 100 *nop* instructions, then another six *load* instructions, and so on.
+    - Smaller pause values simulate higher bandwidth, while larger values simulate lower bandwidth.
 3. ```<frequencyCPU>```:
     - Frequency of the simulated CPU in GHz.
     - Used to convert the timing data from nanoseconds (ns) in the curves to cycles, as simulators operate on a per-cycle basis.
 4. ```<onChipLatency>```:
     - The latency (in nanoseconds) from the CPU core to the memory controller.
-    - Subtracted from the curve values to isolate memory controller-to-main-memory latency.
+    - Subtracted from the curve values to isolate memory controller-to-main-memory latency. 
+	- This latency can be estimated by average access latency to the last-level cache (LLC). 
+	- This latency to LLC is usually existed in CPU simulator's config file. For example ZSim has `L1$`, `L2$`, and `L3$` access latencies. If we sum them we reach to the LLC access latency.  
+    - This latency can also be measured from actual hardware by running pointer-chase benchmark that fit within LLC. For example, the table below provide a list of the CPUs with their measured LLC latency: 
+
+
+
+	| System                         | LLC Latency (ns) |
+	|--------------------------------|------------------|
+	| IBM Power9 8335-GTH            | 15               |
+	| Intel Xeon Gold 5218           | 21               |
+	| AMD EPYC 7742                  | 12               |
+	| Fujitsu A64FX                  | 17               |
+	| Intel Xeon Platinum 8160       | 28               |
+
+	 
+
 
 #### How It Works
 
@@ -116,7 +133,7 @@ The Standalone Mess Simulator can be built and executed in two ways: **Manual Ex
 
 ---
 
-### **1. Manual Execution**
+### **4.1. Manual Execution**
 
 #### **Building the Simulator**
 
@@ -142,13 +159,13 @@ Example:
 ```
 
 - `<curve_path>`: Path to the bandwidth-latency curve file.
-- `<pause_value>`: Pause cycles between memory requests.
+- `<pause_value>`: Number of `nop` instructions between every six memory requests.
 - `<frequencyCPU>`: CPU frequency in GHz.
 - `<onChipLatency>`: On-chip latency in nanoseconds.
 
 ---
 
-### **2. Automatic Execution**
+### **4.2. Automatic Execution**
 
 For ease of use, pre-defined scripts are provided to automate the build and execution process. These scripts compile the simulator (if necessary) and run it with pre-configured parameters.
 
