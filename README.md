@@ -9,8 +9,6 @@ The Mess Simulator employs a proportional–integral (PI) controller mechanism, 
 
 ---
 
-If you find Mess simulator useful, please cite the following paper accepted in MICRO 2024, best paper runner-up award.
-
 The Mess Simulator is organized into two primary components:
 
 **1. Mess Standalone Mode**
