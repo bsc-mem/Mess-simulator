@@ -19,8 +19,6 @@ The Mess Simulator employs a proportional–integral (PI) controller mechanism, 
 
 ---
 
-If you find Mess simulator useful, please cite the following paper accepted in MICRO 2024, best paper runner-up award.
-
 The Mess Simulator is organized into two primary components:
 
 **1. Mess Standalone Mode**
@@ -68,11 +66,11 @@ The repository is organized as follows:
 └── README.md            # This file
 ```
 
-#### Standalone Mode
+#### Standalone Mode
 
 The Standalone folder contains all code and documentation necessary for running Mess as an independent simulator. This mode is particularly suited for quick benchmarking or detailed analysis of memory system behavior.
 
-#### Integrated Mode
+#### Integrated Mode
 
 The Integrated folder includes subdirectories for each supported simulator. Each subdirectory provides configuration files and integration instructions tailored for its respective simulator.
 
