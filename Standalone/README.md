@@ -2,8 +2,8 @@
 
 ## Contents
   [1. Overview](#1-overview) \
-  [2. Simulation Parameters](#3-simulation-parameters) \
-  [3. Directory Organization](#2-directory-organization) \
+  [2. Simulation Parameters](#2-simulation-parameters) \
+  [3. Directory Organization](#3-directory-organization) \
   [4. Build and Run](#4-build-and-run) \
   [5. Example Outputs](#5-example-outputs) 
 
