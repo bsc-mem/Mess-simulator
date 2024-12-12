@@ -37,6 +37,20 @@ static double roundDouble(double d) {
     return std::floor(d + 0.5);
 }
 
+/**
+ * @brief Constructs a MessMemCtrl object, initializing all internal states and
+ *        loading bandwidth-latency curves from the specified directory.
+ *
+ * The constructor reads pre-characterized bandwidth-latency curves for various
+ * read percentages, converts bandwidth and latency units, and stores them for
+ * later use. It also calculates initial lead-off latency and sets up internal
+ * variables needed for simulation.
+ *
+ * @param _curveAddress Path to the directory containing curve files.
+ * @param _curveWindowSize Number of accesses per measurement window.
+ * @param frequencyRate CPU frequency in GHz.
+ * @param _onCoreLatency Additional latency (in cycles) from the core to the memory controller.
+ */
 MessMemCtrl::MessMemCtrl(const std::string& _curveAddress,
                            uint32_t _curveWindowSize, double frequencyRate, double _onCoreLatency)
     : curveAddress(_curveAddress),
@@ -118,11 +132,33 @@ MessMemCtrl::MessMemCtrl(const std::string& _curveAddress,
     }
 }
 
+/**
+ * @brief Returns the minimum achievable latency (lead-off latency).
+ *
+ * The lead-off latency is the lowest possible latency observed among all
+ * loaded curves and serves as a baseline for the memory system.
+ *
+ * @return Lead-off latency in cycles.
+ */
 uint32_t MessMemCtrl::getLeadOffLatency() {
     // Return the minimum achievable latency for memory access
     return static_cast<uint32_t>(leadOffLatency);
 }
 
+
+/**
+ * @brief Searches for the appropriate latency given a measured bandwidth and read percentage.
+ *
+ * This method maps the current bandwidth and read percentage to the corresponding
+ * point on the pre-loaded bandwidth-latency curves. It employs a PID-like controller
+ * to smoothly converge to the right latency value, preventing abrupt changes. If the
+ * bandwidth exceeds a threshold, it applies an overflow penalty to simulate
+ * increased contention.
+ *
+ * @param bandwidth Current measured bandwidth in accesses per cycle.
+ * @param readPercentage Fraction of accesses that are reads, from 0.0 to 1.0.
+ * @return Estimated latency in cycles for the given bandwidth and read percentage.
+ */
 uint32_t MessMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPercentage) {
     const double convergeSpeed = 0.05; // Convergence factor for PID-like controller
 
@@ -238,6 +274,16 @@ uint32_t MessMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPerce
     return static_cast<uint32_t>(finalLatency);
 }
 
+
+/**
+ * @brief Updates the latency at the end of a measurement window.
+ *
+ * After collecting a window's worth of memory accesses, this method calculates the
+ * observed bandwidth and read percentage, then uses them to update the estimated
+ * latency. It ensures that the latency value reflects the current memory load.
+ *
+ * @param currentWindowEndCycle The cycle number at which the current measurement window ends.
+ */
 void MessMemCtrl::updateLatency(uint64_t currentWindowEndCycle) {
     // Calculate bandwidth in accesses per cycle
     double bandwidth =
@@ -255,6 +301,17 @@ void MessMemCtrl::updateLatency(uint64_t currentWindowEndCycle) {
     assert(latency >= 0);
 }
 
+/**
+ * @brief Simulates a memory access at a given cycle and returns its latency.
+ *
+ * Each access is recorded. Once the number of accesses reaches the window size,
+ * the latency is recalculated based on the collected statistics. Subsequent accesses
+ * will reflect any changes in the memory system conditions.
+ *
+ * @param accessCycle The cycle at which the memory access occurs.
+ * @param isWrite True if the access is a write, false if it is a read.
+ * @return Latency in cycles for this access.
+ */
 uint64_t MessMemCtrl::access(uint64_t accessCycle, bool isWrite) {
     // Start cycle of the measurement window
     if (currentWindowAccessCount == 0) {
@@ -284,6 +341,16 @@ uint64_t MessMemCtrl::access(uint64_t accessCycle, bool isWrite) {
     return static_cast<uint64_t>(latency);
 }
 
+/**
+ * @brief Retrieves the additional latency penalty when exceeding maximum bandwidth.
+ *
+ * This method calculates how much the current latency surpasses the maximum latency
+ * for the given read percentage. It helps model scenarios where bandwidth saturation
+ * leads to latency penalties, aiding Quality of Service (QoS) simulations.
+ *
+ * @return The latency penalty in cycles if current latency exceeds max latency,
+ *         otherwise 0.
+ */
 uint64_t MessMemCtrl::GetQsMemLoadCycleLimit() {
     // Calculate the index for the current read percentage
     uint32_t curveDataIndex = lastIntReadPercentage / 2;
