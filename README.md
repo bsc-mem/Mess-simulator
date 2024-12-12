@@ -10,27 +10,19 @@
 
 ## Overview
 
-The Mess Simulator is an abstract memory model that utilizes bandwidth-latency curves to simulate memory system performance. By matching its behavior to input bandwidth-latency curves, it provides a highly customizable and accurate approach for simulating diverse memory systems. The input curves can either be:
+The Mess Simulator is an analytical memory model that utilizes bandwidth-latency curves to simulate memory system performance. By matching its behavior to input bandwidth--latency curves, it provides a highly customizable and accurate approach for simulating diverse memory systems. The input curves can either be:
 
 - **Experimentally derived:** Obtained by running the [Mess Benchmark](https://github.com/bsc-mem/Mess-benchmark) on actual hardware.
-- **Manufacturer-supplied:** Provided by memory manufacturers based on detailed hardware models.
+- **Manufacturer-supplied:** Provided by memory manufacturers based on detailed RTL simulations.
 
-The Mess Simulator employs a proportional–integral (PI) controller mechanism, derived from control theory, to dynamically align its output with the input bandwidth-latency curves. This approach ensures realistic simulation of memory systems, accommodating varying workloads and system configurations.
+The Mess Simulator employs a proportional–integral (PI) controller mechanism, derived from classical control theory, to dynamically align its output with the input bandwidth--latency curves. This approach ensures realistic simulation of memory systems for varying workloads and system configurations.
 
 ---
 
 The Mess Simulator is organized into two primary components:
 
-**1. Mess Standalone Mode**
 
-The Standalone version of Mess Simulator operates independently and is ideal for:
-- **Benchmarking:** Using predefined bandwidth-latency curves to test memory system performance.
-- **Research and Development:** Experimenting with memory behavior in isolation from other system components.
-- **Ease of Integration:** Serving as a reference for integrating the simulator with other CPU simulators.
-
-The Mess Standalone Mode is implemented in C++ and provides a simple interface for running memory simulations without additional dependencies.
-
-**2. Mess Integrated Mode**
+**1. Mess Integrated Mode**
 
 The Integrated version of Mess Simulator is designed for seamless incorporation into popular CPU simulators. This mode currently supports:
 - **ZSim**
@@ -38,6 +30,19 @@ The Integrated version of Mess Simulator is designed for seamless incorporation 
 - **OpenPiton Metro-MPI**
 
 By integrating with these simulators, Mess Integrated Simulator enables system-level simulations, capturing interactions between memory and compute workloads more comprehensively.
+
+**2. Mess Standalone Mode**
+
+The Standalone version of Mess Simulator operates independently and is ideal for:
+
+- **Understanding the Mess Simulator:** The Mess simulator serves as a simple example for learning how it operates. Its user-friendly interface simplifies future integrations with other CPU simulators.
+
+- **Regular Updates:** The standalone version will continually receive the latest features. Utilizing and integrating this version ensures that users can effortlessly keep their models up to date.
+
+The Mess Standalone Mode is implemented in C++ and provides a simple interface for running memory simulations without additional dependencies.
+
+*Note: The Mess simulator standalone version is not designed to function as a trace-driven simulator and should not be used as such. It is intended solely for learning and integration purposes.
+
 
 ---
 
@@ -66,13 +71,18 @@ The repository is organized as follows:
 └── README.md            # This file
 ```
 
-#### Standalone Mode
-
-The Standalone folder contains all code and documentation necessary for running Mess as an independent simulator. This mode is particularly suited for quick benchmarking or detailed analysis of memory system behavior.
-
 #### Integrated Mode
 
-The Integrated folder includes subdirectories for each supported simulator. Each subdirectory provides configuration files and integration instructions tailored for its respective simulator.
+The Integrated folder includes subdirectories for each supported simulator. Each subdirectory provides configuration files and integration instructions tailored for its respective simulator. 
+
+*Note: This mode includes the version of Mess released during the Mess paper publication, enabling replication of the paper's results. Newer versions of the Mess simulator will be available as standalone versions. However, the standalone versions can be easily integrated in a manner similar to the current integrated version.
+
+
+
+#### Standalone Mode
+
+The Standalone folder contains all code and documentation necessary for running Mess simulator as an independent simulator. This mode is intended solely for learning and integration purposes and should not be used for trace-driven simulation. 
+
 
 ## Citation
 
