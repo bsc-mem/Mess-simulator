@@ -9,7 +9,7 @@ Currently Mess simulator exists in standalone mode and integrated mode. It is in
 
 ## Citation
 
-If you find this benchmark useful, please cite the following paper accepted in MICRO 2024, best paper runner-up award.
+If you find Mess simulator useful, please cite the following paper accepted in MICRO 2024, best paper runner-up award.
 
 ```
 @INPROCEEDINGS{10764561,
