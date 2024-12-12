@@ -105,7 +105,7 @@ To create a custom script for a new memory technology or configuration, follow t
    Modify the parameters to reflect your desired configuration:
    - **Curve Path**: Change `./curves_src/skylake-ddr4` to the path of your custom curves.
    - **FrequencyCPU**: Set the frequency of your simulated CPU.
-   - **OnChipLatency**: Specify the latency from core to memory controller.
+   - **OnChipLatency**: Specify the latency from core to memory controller. For more information on how obtain it read the [Standalone Mess Simulator documentation](../README.md).
 
 3. **Add Your Curve Files**  
    Ensure the bandwidth-latency curves for your configuration are added to the `curves_src/` directory.

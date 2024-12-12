@@ -55,18 +55,15 @@ The Mess simulator requires several input parameters to model memory behavior ac
     - The latency (in nanoseconds) from the CPU core to the memory controller.
     - Subtracted from the curve values to isolate memory controller-to-main-memory latency. 
 	- This latency can be estimated by average access latency to the last-level cache (LLC). 
-	- This latency to LLC is usually existed in CPU simulator's config file. For example ZSim has `L1$`, `L2$`, and `L3$` access latencies. If we sum them we reach to the LLC access latency.  
-    - This latency can also be measured from actual hardware by running pointer-chase benchmark that fit within LLC. For example, the table below provide a list of the CPUs with their measured LLC latency: 
-
-
-
-	| System                         | LLC Latency (ns) |
-	|--------------------------------|------------------|
-	| IBM Power9 8335-GTH            | 15               |
-	| Intel Xeon Gold 5218           | 21               |
-	| AMD EPYC 7742                  | 12               |
-	| Fujitsu A64FX                  | 17               |
-	| Intel Xeon Platinum 8160       | 28               |
+	- This latency to LLC is usually present in the config file of CPU simulators. For example ZSim has `L1$`, `L2$`, and `L3$` access latencies. If we sum them all we can obtain the LLC access latency, the On Chip Latency.  
+    - This latency can also be measured from actual hardware by running the pointer-chase benchmark with a size that fits within LLC. For example, the table below provides a list of the CPUs with their measured On Chip Latency (LLC Latency): 
+	  | System                         | On Chip Latency (ns) |
+	  |--------------------------------|------------------|
+	  | IBM Power9 8335-GTH            | 15               |
+	  | Intel Xeon Gold 5218           | 21               |
+	  | AMD EPYC 7742                  | 12               |
+	  | Fujitsu A64FX                  | 17               |
+	  | Intel Xeon Platinum 8160       | 28               |
 
 	 
 
@@ -198,7 +195,7 @@ The program models read operations over multiple iterations and uses the `MessMe
 
 ## 5. Example Outputs
 
-The Mess simulator outputs latency (ns) and bandwidth (GB/s) for each run. Here’s an example output for DDR4 with different pause values:
+The Mess simulator outputs bandwidth (GB/s) and latency (ns) for each run. Here’s an example output for DDR4 with different pause values:
 
 ```txt
 67.20 GB/s, 90.00 ns
