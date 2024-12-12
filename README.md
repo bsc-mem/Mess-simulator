@@ -1,14 +1,14 @@
 # Mess-simulator
 
 ## Contents
-  [1. Overview](#1-overview) \
-  [2. Repository Structure](#2-repository-structure) \
-  [3. Citation](#3-citation) \
-  [4. Getting Started](#4-getting-started)
+  [Overview](#overview) \
+  [Repository Structure](#repository-structure) \
+  [Citation](#citation) \
+  [Getting Started](#getting-started)
 
 ---
 
-## 1. Overview
+## Overview
 
 The Mess Simulator is an abstract memory model that utilizes bandwidth-latency curves to simulate memory system performance. By matching its behavior to input bandwidth-latency curves, it provides a highly customizable and accurate approach for simulating diverse memory systems. The input curves can either be:
 
@@ -41,7 +41,7 @@ By integrating with these simulators, Mess Integrated Simulator enables system-l
 
 ---
 
-## 2. Repository Structure
+## Repository Structure
 
 The repository is organized as follows:
 
@@ -74,7 +74,7 @@ The Standalone folder contains all code and documentation necessary for running 
 
 The Integrated folder includes subdirectories for each supported simulator. Each subdirectory provides configuration files and integration instructions tailored for its respective simulator.
 
-## 3. Citation
+## Citation
 
 If you find this simulator useful, please cite the following paper presented at MICRO 2024, which was awarded Best Paper Runner-Up:
 
@@ -86,7 +86,7 @@ If you find this simulator useful, please cite the following paper presented at 
   year={2024}}
 ```
 
-## 4. Getting Started
+## Getting Started
 
 **Prerequisites**
 - C++11 or higher.
