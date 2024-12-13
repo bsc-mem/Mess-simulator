@@ -1,11 +1,12 @@
-# Mess-Simulator: Standalone Version
+# Mess Simulator: Standalone Version
 
 ## Contents
   [1. Overview](#1-overview) \
   [2. Simulation Parameters](#2-simulation-parameters) \
   [3. Directory Organization](#3-directory-organization) \
   [4. Build and Run](#4-build-and-run) \
-  [5. Example Outputs](#5-example-outputs) 
+  [5. Example Outputs](#5-example-outputs) \
+  [6. Citation](#6-citation) 
 
 ---
 
@@ -16,15 +17,26 @@ The Standalone Mess Simulator is a simplified tool for evaluating memory perform
 
 
 
-<p align="center"><img src="../figures/mess_general.png" width="70%" height="80%"></p> <p align="center"><i>Figure 1: Overview of the Standalone Mess Simulator. The Workload Generator initialize the Mess Standalone Simulator with input configuration values. Then, it interacts with the Mess Standalone Simulator, by sending memory accesses and receiving their memory access latencies.</i></p>
+<p align="center"><img src="../figures/mess_general.png" width="70%" height="80%"></p> <p align="center"><i>Figure 1: Overview of the Standalone Mess Simulator. The Workload Generator initialize the Standalone  Mess Simulator with input configuration values. Then, it interacts with the Standalone Mess Simulator, by sending memory accesses and receiving their memory access latencies.</i></p>
 
 This simulator is designed for standalone use, allowing users to study memory behavior without the complexity of integrating it into larger CPU or system simulators.
+
+The Standalone version of Mess Simulator operates independently and is ideal for:
+
+- **Understanding the Mess Simulator:** The Mess simulator serves as a simple example for learning how it operates. Its user-friendly interface simplifies future integrations with other CPU simulators.
+
+- **Regular Updates:** The standalone version will continually receive the latest features. Utilizing and integrating this version ensures that users can effortlessly keep their models up to date.
+
+
+*Note: The Mess simulator standalone version is not designed to function as a trace-driven simulator and should not be used as such. It is intended solely for learning and integration purposes.
 
 
 #### Key Features
 - Functions independently of full-system or cpu simulators, enabling focused exploration of memory performance.
 - Supports multiple memory technologies, including DDR4, DDR5, HBM2, and CXL.
 - Relies on measured memory bandwidth-latency curves.
+
+*Note: The Mess simulator standalone version is not designed to function as a trace-driven simulator and should not be used as such. It is intended solely for learning and integration purposes.
 
 #### How Does it Work?
 The simulator evaluates memory performance through the following steps:
@@ -101,7 +113,7 @@ This folder contains pre-defined scripts to run experiments for various memory c
 - If you want to modify these scripts or create custom configurations, refer to the **README in the `scripts/` directory** for detailed instructions.
 
 #### ```src/``` 
-This directory contains the source files of the Mess Standalone simulator.
+This directory contains the source files of the Standalone Mess simulator.
 
 - **`mess_mem_ctrl.cpp`** and **`mess_mem_ctrl.h`** implement the simulator's main functionality.
 - **`example.cpp`** serves as an example file, demonstrating how to set up and use the simulator.
@@ -218,3 +230,17 @@ For further analysis of real hardware memory system behaviour please refer to th
 - Experiment with different pause values to explore how the memory system responds under varying loads.
 - Use the pre-defined scripts for a faster, guided exploration of results across a wide range of configurations.
 - Modify the example program (src/example.cpp) to include write operations or test new workloads.
+
+
+## Citation
+
+If you find this simulator useful, please cite the following paper presented at MICRO 2024, which was awarded Best Paper Runner-Up:
+
+```tex
+@INPROCEEDINGS{10764561,
+  author={Esmaili-Dokht, Pouya and Sgherzi, Francesco and Girelli, Valéria Soldera and Boixaderas, Isaac and Carmin, Mariana and Monemi, Alireza and Armejach, Adrià and Mercadal, Estanislao and Llort, Germán and Radojković, Petar and Moreto, Miquel and Giménez, Judit and Martorell, Xavier and Ayguadé, Eduard and Labarta, Jesus and Confalonieri, Emanuele and Dubey, Rishabh and Adlard, Jason},
+  booktitle={57th IEEE/ACM International Symposium on Microarchitecture (MICRO)}, 
+  title={{A Mess of Memory System Benchmarking, Simulation and Application Profiling}}, 
+  year={2024}}
+```
+

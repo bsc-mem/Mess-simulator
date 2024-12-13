@@ -1,4 +1,4 @@
-# Mess-simulator
+# Mess Simulator
 
 ## Contents
   [Overview](#overview) \
