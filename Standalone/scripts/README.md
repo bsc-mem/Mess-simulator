@@ -72,22 +72,20 @@ All scripts follow a similar structure. Below is an explanation of the key secti
    make
    ```
 
-3. **Parameter Setup**: Key variables for the simulation are set here:
+3. **Parameter Setup**: Key variable for the simulation are set here:
    - **`frequencyCPU`**: The frequency of the CPU being simulated (e.g., 2.1 GHz for DDR4).
-   - **`onChipLatency`**: Latency from the core to the memory controller (in nanoseconds).
 
    Example:
    ```bash
    frequencyCPU=2.1
-   onChipLatency=51
    ```
 
 4. **Simulation Execution**: Runs the Mess Simulator for multiple pause values to simulate different bandwidths:
 
    ```bash
-   ./build/mess_example ./curves_src/skylake-ddr4 20000 $frequencyCPU $onChipLatency
-   ./build/mess_example ./curves_src/skylake-ddr4 200 $frequencyCPU $onChipLatency
-   ./build/mess_example ./curves_src/skylake-ddr4 100 $frequencyCPU $onChipLatency
+   ./build/mess_example ./curves_src/skylake-ddr4 20000 $frequencyCPU
+   ./build/mess_example ./curves_src/skylake-ddr4 200 $frequencyCPU
+   ./build/mess_example ./curves_src/skylake-ddr4 100 $frequencyCPU
    ```
 ---
 
@@ -105,7 +103,6 @@ To create a custom script for a new memory technology or configuration, follow t
    Modify the parameters to reflect your desired configuration:
    - **Curve Path**: Change `./curves_src/skylake-ddr4` to the path of your custom curves.
    - **FrequencyCPU**: Set the frequency of your simulated CPU.
-   - **OnChipLatency**: Specify the latency from core to memory controller. For more information on how obtain it read the [Standalone Mess Simulator documentation](../README.md).
 
 3. **Add Your Curve Files**  
    Ensure the bandwidth-latency curves for your configuration are added to the `curves_src/` directory.
