@@ -56,7 +56,7 @@ uint64_t simulateCycle(uint64_t currentCycle, uint64_t pause) {
  * @brief Prints usage instructions for the program.
  */
 void printUsage() {
-    std::cerr << "Usage: ./example <curve_path> <pause_value> <cpu_frequency> <on_chip_latency>" << std::endl;
+    std::cerr << "Usage: ./example <curve_path> <pause_value> <cpu_frequency>" << std::endl;
 }
 
 /**
@@ -72,7 +72,7 @@ void printUsage() {
  */
 int main(int argc, char* argv[]) {
     // Validate argument count
-    if (argc != 5) {
+    if (argc != 4) {
         printUsage();
         return 1;
     }
@@ -82,7 +82,6 @@ int main(int argc, char* argv[]) {
         std::string curvePath = argv[1];               // Path to bandwidth-latency curve file
         int pauseValue = std::stoi(argv[2]);           // Pause between operations (controls bandwidth)
         float cpuFrequency = std::stof(argv[3]);       // CPU frequency for the simulation
-        float onChipLatency = std::stof(argv[4]);      // On-chip latency to adjust the curve latency values
 
         // Validate pause value
         if (pauseValue < 0) {
@@ -91,7 +90,7 @@ int main(int argc, char* argv[]) {
 
         // Create an instance of the memory controller
         // MessMemCtrl handles memory latency and bandwidth computations based on input curves
-        std::unique_ptr<MessMemCtrl> memoryController(new MessMemCtrl(curvePath, 1000, cpuFrequency, onChipLatency));
+        std::unique_ptr<MessMemCtrl> memoryController(new MessMemCtrl(curvePath, 1000, cpuFrequency));
 
         uint32_t latency = 0;    // Variable to store the latency of memory operations
         uint64_t cycle = 0;      // Simulated clock cycle count

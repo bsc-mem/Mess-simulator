@@ -49,14 +49,12 @@ static double roundDouble(double d) {
  * @param _curveAddress Path to the directory containing curve files.
  * @param _curveWindowSize Number of accesses per measurement window.
  * @param frequencyRate CPU frequency in GHz.
- * @param _onCoreLatency Additional latency (in cycles) from the core to the memory controller.
  */
 MessMemCtrl::MessMemCtrl(const std::string& _curveAddress,
-                           uint32_t _curveWindowSize, double frequencyRate, double _onCoreLatency)
+                           uint32_t _curveWindowSize, double frequencyRate)
     : curveAddress(_curveAddress),
       curveWindowSize(_curveWindowSize),
       frequencyCPU(frequencyRate),
-      onCoreLatency(_onCoreLatency),
       leadOffLatency(100000), // Initialize with a large value; will be updated later
       maxBandwidth(0),
       maxLatency(0),
@@ -97,11 +95,6 @@ MessMemCtrl::MessMemCtrl(const std::string& _curveAddress,
             // The input latency is in ns; convert it to the CPU's cycles
             inputLatency *= frequencyCPU;
 
-            // Adjust latency based on on-core latency
-            // onCoreLatency = 0 for curves measured from the memory controller
-            // onCoreLatency > 0 for curves measured from the CPU core
-            inputLatency -= onCoreLatency;
-
             // Store the data point (bandwidth, latency)
             curve_data.push_back({inputBandwidth, inputLatency});
 
@@ -126,6 +119,10 @@ MessMemCtrl::MessMemCtrl(const std::string& _curveAddress,
         maxBandwidthPerRdRatio.push_back(maxBandwidthTemp);
         maxLatencyPerRdRatio.push_back(maxLatencyTemp);
         curves_data.push_back(curve_data);
+
+        // set initial latency to the lead-off latency
+        lastEstimatedLatency = leadOffLatency;
+        latency = static_cast<uint32_t>(leadOffLatency);
 
         // Close the curve file
         curveFile.close();

@@ -59,7 +59,6 @@ private:
     /**
      * @brief Latency metrics related to the core and memory.
      */
-    double onCoreLatency;           ///< Latency from the core to the memory controller (cycles).
     double leadOffLatency;          ///< Minimum achievable latency for memory access (cycles).
     double maxBandwidth;            ///< Maximum bandwidth (accesses per cycle).
     double maxLatency;              ///< Maximum latency for high contention scenarios (cycles).
@@ -69,15 +68,6 @@ private:
      * This value is dynamically updated based on memory traffic.
      */
     uint32_t latency;
-    /**
-     * @brief Adjustments for on-chip latency.
-     * 
-     * Curves typically include the latency from the core to the main memory. 
-     * However, memory simulators only simulate the latency from the memory 
-     * controller to main memory. This value is subtracted from curve latencies 
-     * to align them with simulation requirements.
-     */
-    double onChipLatency;
 
     /**
      * @brief PID-like controller metrics for smooth latency-bandwidth convergence.
@@ -169,9 +159,8 @@ public:
      * @param curveAddress Path to the directory containing bandwidth-latency curve files.
      * @param curveWindowSize Size of the measurement window (number of accesses).
      * @param frequencyRate Frequency (GHz) of the simulated CPU.
-     * @param _onCoreLatency Latency from the core to the memory controller (cycles).
      */
-    MessMemCtrl(const std::string& _curveAddress, uint32_t _curveWindowSize, double frequencyRate, double _onCoreLatency);
+    MessMemCtrl(const std::string& _curveAddress, uint32_t _curveWindowSize, double frequencyRate);
 
     /**
      * @brief Simulates a memory access.

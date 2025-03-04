@@ -23,7 +23,7 @@ This simulator is designed for standalone use, allowing users to study memory be
 
 The Standalone version of Mess Simulator operates independently and is ideal for:
 
-- **Understanding the Mess Simulator:** The Mess simulator serves as a simple example for learning how it operates. Its user-friendly interface simplifies future integrations with other CPU simulators.
+- **Understanding the Mess Simulator:** The standalone version serves as a simple example for learning how Mess Simulator operates. Its user-friendly interface simplifies future integrations with other CPU simulators.
 
 - **Regular Updates:** The standalone version will continually receive the latest features. Utilizing and integrating this version ensures that users can effortlessly keep their models up to date.
 
@@ -58,24 +58,12 @@ The Mess simulator requires several input parameters to model memory behavior ac
     - The simulator will use this curve as a reference
 2. ```<pause_value>```:
     - Controls the issue rate of memory instructions by inserting `nop` instructions between them. 
+	- Can be intuitively understood (approximately quantified) as a number of `nop` instructions per memory instruction/operation. 
 	- The *pause* value specifies the number of *nop* instructions inserted between every six memory instructions. For instance, if `pause=100`, six *load* instructions are followed by 100 *nop* instructions, then another six *load* instructions, and so on.
     - Smaller pause values simulate higher bandwidth, while larger values simulate lower bandwidth.
 3. ```<frequencyCPU>```:
     - Frequency of the simulated CPU in GHz.
     - Used to convert the timing data from nanoseconds (ns) in the curves to cycles, as simulators operate on a per-cycle basis.
-4. ```<onChipLatency>```:
-    - The latency (in nanoseconds) from the CPU core to the memory controller.
-    - Subtracted from the curve values to isolate memory controller-to-main-memory latency. 
-	- This latency can be estimated by average access latency to the last-level cache (LLC). 
-	- This latency to LLC is usually present in the config file of CPU simulators. For example ZSim has `L1$`, `L2$`, and `L3$` access latencies. If we sum them all we can obtain the LLC access latency, the On Chip Latency.  
-    - This latency can also be measured from actual hardware by running the pointer-chase benchmark with a size that fits within LLC. For example, the table below provides a list of the CPUs with their measured On Chip Latency (LLC Latency): 
-	  | System                         | On Chip Latency (ns) |
-	  |--------------------------------|------------------|
-	  | IBM Power9 8335-GTH            | 15               |
-	  | Intel Xeon Gold 5218           | 21               |
-	  | AMD EPYC 7742                  | 12               |
-	  | Fujitsu A64FX                  | 17               |
-	  | Intel Xeon Platinum 8160       | 28               |
 
 	 
 
@@ -159,7 +147,7 @@ This command compiles the simulator and creates an executable in the `build/` di
 Once compiled, you can run the simulator directly using the executable. Use the following format:
 
 ```bash
-./build/mess_example <curve_path> <pause_value> <frequencyCPU> <onChipLatency>
+./build/mess_example <curve_path> <pause_value> <frequencyCPU>
 ```
 
 Example:
@@ -168,9 +156,9 @@ Example:
 ```
 
 - `<curve_path>`: Path to the bandwidth-latency curve file.
-- `<pause_value>`: Number of `nop` instructions between every six memory requests.
-- `<frequencyCPU>`: CPU frequency in GHz.
-- `<onChipLatency>`: On-chip latency in nanoseconds.
+- `<pause_value>`: Can be intuitively understood (approximately quantified) as a number of `nop` instructions per memory instruction/operation.
+- `<frequencyCPU>`: CPU frequency in GHz. 
+
 
 ---
 
@@ -188,7 +176,7 @@ bash scripts/ddr4-exp.sh
 
 The scripts:
 - Automatically compile the simulator if it hasn’t been built yet.
-- Set up and pass parameters like pause cycles, CPU frequency, and on-chip latency.
+- Set up and pass parameters like pause cycles and CPU frequency.
 - Execute the simulator across a range of pre-defined configurations.
 
 ---
@@ -210,18 +198,19 @@ The program models read operations over multiple iterations and uses the `MessMe
 The Mess simulator outputs bandwidth (GB/s) and latency (ns) for each run. Here’s an example output for DDR4 with different pause values:
 
 ```txt
-67.20 GB/s, 90.00 ns
-134.40 GB/s, 50835.71 ns
-192.00 GB/s, 50916.19 ns
-268.80 GB/s, 50945.71 ns
-448.00 GB/s, 50967.14 ns
+0.07 GB/s, 66.19 ns
+6.72 GB/s, 68.10 ns
+13.44 GB/s, 70.00 ns
+26.88 GB/s, 74.29 ns
+67.20 GB/s, 86.19 ns
+134.40 GB/s, 49921.91 ns
 ```
 
 #### Interpreting the Results
 
 1. Latency: As bandwidth utilization increases, latency generally rises. For example:
-    - At 67.20 GB/s, the latency is 90.00 ns.
-    - At 448.00 GB/s, the latency increases significantly to 50967.14 ns.
+    - At 67.20 GB/s, the latency is 86.19 ns.
+    - At 134.40 GB/s, the latency increases significantly to 49921.91 ns due to saturation.
 
 For further analysis of real hardware memory system behaviour please refer to the [Mess Paper](https://ieeexplore.ieee.org/document/10764561).
 
