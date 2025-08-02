@@ -10,10 +10,9 @@ Mess simulators is an abstract memory model based on bandwidth--latency curves. 
 Currenty Mess simulator is integrated with the following CPU simulators:
 
 - ZSim as a representative of event-based simulator. This directory is the integration done during Mess study.  
-- ZSim+Standalone as a representative of event-based simulator. This repository is updated version of ZSim directory. We keep this dircotry updated as we update the standalone version.   
 - gem5 as a representative of cycle-accurate simulator
 - OpenPiton Metro-MPI as a representative of RTL simulator
-
+- ZSim+Standalone as a representative of event-based simulator. This repository is updated version of ZSim directory. We keep this dircotry updated as we update the standalone version. We strongly suggest ZSim users to use this integration to avoid misconfiguration. The original integration has some values hardcoded that can lead to wrong evaluation. 
 
 
 
