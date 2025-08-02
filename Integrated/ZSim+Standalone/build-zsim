@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# This is a buld file for Minatauro clusters in Barcelona Supercomputing Center (BSC).
+# Each modules contains special version of libraries that are needed for compiling 
+# and building ZSim+DRAMsim3 simulation platform. 
+
+# module purge
+
+
+# module load intel/2024.1 impi/2021.12 hdf5/1.10.11
+# module load gcc/13.2.0
+# module load cmake/3.29.2
+# module load mkl python
+
+
+# we need to set some PATHs for compiling ZSim
+export LIBCONFIG_HOME=/home/pp/Desktop/platform/libconfig-1.5/
+export PINPATH=/home/pp/Desktop/platform/pin/
+export HDF5_HOME=/home/pp/Desktop/platform/hdf5-1.8.16/
+
+export DRAMSIM3PATH=/home/pp/Desktop/platform/DRAMsim3_mn5/
+export RAMULATORPATH=/home/pp/Desktop/platform/Ramulator/ramulator/
+
+export LD_LIBRARY_PATH=$LIBCONFIG_HOME/lib:$HDF5_HOME/lib:$LD_LIBRARY_PATH
+
+
+scons -c
+
+scons -j4 

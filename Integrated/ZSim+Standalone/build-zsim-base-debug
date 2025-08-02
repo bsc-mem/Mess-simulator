@@ -1,0 +1,21 @@
+#!/bin/bash
+
+module purge
+#module load intel  HDF5/1.8.14 PYTHON/2.7.3 gcc/4.9.1 SCONS/2.3.0
+#module load gcc/4.9.1 intel impi/5.1.2.150 python/2.7.3 HDF5/1.8.16-mpi scons
+module load gcc intel HDF5 PYTHON/2.7.3  SCONS/2.3.0
+
+export LC_ALL="en_US.UTF-8"
+
+#export DRAMSIMPATH=/home/bsc18/bsc18328/lsc/DRAMSim2DQ
+export LIBCONFIG_HOME=/home/bsc18/bsc18278/zsim/sim-env/libconfig-1.5/
+export PINPATH=/home/bsc18/bsc18278/zsim/sim-env/pin/
+export HDF5_HOME=/home/bsc18/bsc18278/zsim/sim-env/hdf5-1.8.16/
+export DRAMSIMPATH=/home/bsc18/bsc18278/zsim/DRAMSim2DQ
+
+
+
+export LD_LIBRARY_PATH=$LIBCONFIG_HOME/lib:$HDF5_HOME/lib:$LD_LIBRARY_PATH
+
+scons -c
+scons -j16 --d
