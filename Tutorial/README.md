@@ -1,76 +1,51 @@
-
-
 # Mess Simulator Tutorial (MICRO 2025)
 
-This folder provides a detailed, step-by-step explanation on how Mess simulator works. Mess simulator uses bandwidth--latency curves as input and using PI controller mechanism from classical control theory, it matches memory system simulation performance to the input bandwidth--latency curves. It accurately follows the performance of bandwidth--latency curves and therefore, given a accurate curves, it can proide you highly accurate memory system performance simulator.  
- 
-*Note: Please remember Mess is not a detailed simulator and does not include bulding blocks of main memory such as channel, rank, banks, and etc., instead Mess is an abstract perforamance simulator and it should be used as such. Scenarios that we think Mess is or is not usefull: 
+This folder provides a detailed, step-by-step explanation of how the **Mess simulator** works.  
+Mess uses **bandwidth–latency curves** as input and applies a **PI controller** mechanism from classical control theory to match simulated performance to those curves.  
+Given accurate input curves, Mess can provide **highly accurate memory system performance simulation**.
 
-Usefull scenario: 
+> **Note:** Mess is an *abstract performance simulator* — not a detailed main-memory model. It does **not** include components such as channels, ranks, or banks. It should be used as a lightweight, high-level simulator for performance modeling.
 
+---
 
-- You need an accurate and simple memory system simulator. 
-- You need an accurate immediate response memory model. 
-- You need a very fast memory simulator. 
-- You want to simulate a very new technology that does not have any detailed model yet due to IP or development time issues. Remember that being detaield are not necessarily means more accurate. 
+## When to Use Mess
 
+### ✅ Useful Scenarios
+- You need an accurate yet simple memory system simulator.  
+- You need a fast model that provides immediate responses.  
+- You want to model a new memory technology that lacks a detailed simulator due to IP or development constraints.  
+- You value *accuracy over microarchitectural detail* — remember, being detailed does not always mean being accurate.
 
-Not usefull scenario: 
+### 🚫 Not Useful Scenarios
+- You want to explore detailed timing effects (e.g., reducing tRCD from 14.25 ns to 10 ns).  
+- You need a standalone memory simulator — Mess requires integration with a CPU simulator.  
+- You aim to perform design-space exploration on memory parameters (e.g., "What happens if bandwidth increases?").  
+  > This feature is under development. Currently, exploration is limited to realistic, hardware-measured systems such as:
+  > - AWS Graviton3 (8× DDR5-4800)
+  > - Intel Max (4× HBM2E)
+  > - Intel Skylake (6× DDR4-2666)
 
-- Mess is not a detailed memory simulator. Therefore, you cannot explore the peroframcen of memory system when tRCD decreases fro 14.25ns to 10ns 
+---
 
-- Mess simulator does not work without a CPU simulator. So you cannot expect the same thing that you expect from Ramulator/DRAMsim3 trace based simulation. 
+## Converting Curves from Mess Benchmark to Mess Simulator Input
 
-- Design space exploraton on memory side: e.g., haveing more bandwidth or latnecy. (work in progress). As of now your exploration is limtited to realsitic measurments on actual hardware: Graviton3's 8x DDR5-4800, Intel max 4x HBM2E, Intel Skylake 6x DDR4-2666.  
- 
+To convert benchmark-generated curves into input for the simulator:
 
+1. Define the **write-allocate policy** in the cache system (load/store vs. read/write percentage).  
+2. Relate **load-to-use latency** (from the core) to **memory access response time**.
 
-## How to convert the curves from Mess benchmark to input curves of Mess simulator 
+We provide a script to automate this process for most systems studied so far.  
+The script is located in the `scriptConvertCurve` folder and requires the following input:
 
-- Write allocate policy in cache system (load/store percentage Vs read/write percentage). 
+- **On-chip latency:** Estimated using the load-to-use latency of LLC accesses.  
+  > Note: This is not the exact core-to-memory-controller latency, but it provides a very close approximation and yields acceptable accuracy.
 
-- load-to-use-latency from core Vs memory access response time. 
-
-
-We wrote an script to address this issue for majority of the systems we studies so far. This script works as follows: 
-
-
-*Note: We estimate on-chip latency with load-to-use-latency of LLC accesses. Please remind this is not exactly the latency we want (core to memory controller), but this is the closest we can get. And reaching this point give us already a very good accuracy.  
-
-
-
-
-
-
+---
 
 ## Notes
 
-1. Integration is not as easy as you think: ZSim example. 
+1. **Integration challenges (e.g., ZSim example):**
+   - Locking mechanisms for parallel simulators  
+   - Data allocation policies  
 
-	- Lock for parallel simulators 
-	- Data allocation policy 
-
-
-2. Deep dive into important parameter of the simulator
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Refrences
-
-[[1]](https://www.bsc.es/marenostrum/marenostrum-5) [https://www.bsc.es/marenostrum/marenostrum-5](https://www.bsc.es/marenostrum/marenostrum-5 ) 
-
-[[2]](https://www.bsc.es/supportkc/docs/MareNostrum5/overview) [https://www.bsc.es/supportkc/docs/MareNostrum5/overview](https://www.bsc.es/supportkc/docs/MareNostrum5/overview ) 
+2. **Deep dives into key parameters and codes of the simulator**.
