@@ -87,21 +87,45 @@ private:
 
     /**
      * @brief Pre-characterized bandwidth-latency curve data.
-     * 
-     * - `curves_data` stores the curves:
-     *   - First dimension: Read percentage (0% to 100%, in 2% increments).
-     *   - Second dimension: Bandwidth-latency pairs for each read percentage.
-     * - `maxBandwidthPerRdRatio`: Maximum bandwidth for each read percentage.
-     * - `maxLatencyPerRdRatio`: Maximum latency for each read percentage.
+     *
+     * - `curves_data` stores one entry per curve found in the JSON file:
+     *   - First dimension: Curve index, sized to whatever the input file
+     *     contained (no stride or count assumptions).
+     *   - Second dimension: Bandwidth-latency pairs for that curve.
+     * - `maxBandwidthPerRdRatio`: Maximum bandwidth for each curve.
+     * - `maxLatencyPerRdRatio`: Maximum latency for each curve.
      */
     vector<vector<vector<double>>> curves_data;
     vector<double> maxBandwidthPerRdRatio;
     vector<uint32_t> maxLatencyPerRdRatio;
 
     /**
-     * @brief Path to the curve data directory.
+     * @brief O(1) lookup from an integer read percentage (0..100) to the
+     *        index in `curves_data` of the nearest available curve.
+     *
+     * Built once at construction from the read percentages actually present
+     * in the JSON file, so the runtime path does not depend on any specific
+     * curve stride (e.g. 2%) or count.
+     */
+    vector<uint32_t> pctToCurveIdx;
+
+    /**
+     * @brief Path to the curve JSON file.
      */
     string curveAddress;
+
+    /**
+     * @brief Number of memory channels the curves were measured on.
+     *        Read from the "measuredChannels" field of the curve JSON.
+     */
+    uint32_t measuredChannels;
+
+    /**
+     * @brief Number of memory channels of the simulated system.
+     *        Used to linearly scale per-channel bandwidth values relative
+     *        to the system the curves were measured on.
+     */
+    uint32_t channels;
 
     /**
      * @brief Counters for tracking memory access behavior.
@@ -157,11 +181,16 @@ public:
      * This method loads the bandwidth-latency curves from the specified directory
      * and prepares the memory controller for simulation.
      * 
-     * @param curveAddress Path to the directory containing bandwidth-latency curve files.
+     * @param curveAddress Path to the JSON file containing bandwidth-latency curves.
      * @param curveWindowSize Size of the measurement window (number of accesses).
      * @param frequencyRate Frequency (GHz) of the simulated CPU.
+     * @param channels Number of memory channels of the simulated system.
+     *                 Bandwidth values from the curve file are scaled by
+     *                 ``channels / measuredChannels`` (where measuredChannels is
+     *                 read from the JSON).
      */
-    MessMemCtrl(const std::string& _curveAddress, uint32_t _curveWindowSize, double frequencyRate);
+    MessMemCtrl(const std::string& _curveAddress, uint32_t _curveWindowSize,
+                double frequencyRate, uint32_t channels);
 
     /**
      * @brief Simulates a memory access.
@@ -183,6 +212,20 @@ public:
      * @return Lead-off latency in cycles.
      */
     uint32_t getLeadOffLatency();
+
+    /**
+     * @brief Retrieves the peak (maximum) bandwidth representable by the
+     *        loaded curves, in GB/s.
+     *
+     * This is the largest bandwidth point across every read-percentage curve,
+     * already including the per-channel scaling factor
+     * ``channels / measuredChannels`` applied at construction time. It can be
+     * used as the "infinite issue rate" answer when a caller wants to know
+     * what the simulated memory subsystem can deliver under saturation.
+     *
+     * @return Peak bandwidth in GB/s.
+     */
+    double getPeakBandwidthGBs() const;
 
     /**
      * @brief Retrieves the memory load penalty for QoS simulations.

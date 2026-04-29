@@ -32,21 +32,26 @@ echo "Skylake with HBM2"
 # this is the CPU frequency, we consider for our experiment (In integrated version, this will be the CPU frequency of your CPU simulator)
 frequencyCPU=2.1
 
+# Number of memory channels of the simulated system. Bandwidth values from
+# the curve file are linearly scaled by `channels / measuredChannels`
+# (where measuredChannels is read from the JSON file).
+channels=6
+
 # Run the Mess simulator for varying pause values
 # Each pause value determines the bandwidth, with smaller values issuing higher bandwidth
-./build/mess_example ./data/a64fx-hbm2e 20000 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 200 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 100 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 50 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 20 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 10 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 9 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 8 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 7 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 6 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 5 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 4 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 3 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 2 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 1 $frequencyCPU  
-./build/mess_example ./data/a64fx-hbm2e 0 $frequencyCPU  
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 20000 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 200 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 100 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 50 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 20 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 10 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 9 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 8 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 7 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 6 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 5 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 4 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 3 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 2 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 1 $frequencyCPU $channels
+./build/mess_example ./data/bw-lat/a64fx-hbm2.json 0 $frequencyCPU $channels

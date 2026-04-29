@@ -3,6 +3,7 @@
 ## Contents
   [Overview](#overview) \
   [Repository Structure](#repository-structure) \
+  [Cloning Options](#cloning-options) \
   [Citation](#citation) \
   [Getting Started](#getting-started)
 
@@ -81,8 +82,75 @@ The Integrated folder includes subdirectories for each supported simulator. Each
 
 #### Standalone Mode
 
-The Standalone folder contains all code and documentation necessary for running Mess simulator as an independent simulator. This mode is intended solely for learning and integration purposes and should not be used for trace-driven simulation. 
+The Standalone folder contains all code and documentation necessary for running Mess simulator as an independent simulator. This mode is intended solely for learning and integration purposes and should not be used for trace-driven simulation.
 
+
+## Cloning Options
+
+Depending on your needs, there are several ways to obtain the Mess Simulator repository:
+
+### Clone Only the Standalone Folder
+
+If you only need the Standalone mode and want to avoid downloading the entire repository, you can use Git's sparse checkout feature. This downloads only the `Standalone/` directory:
+
+```sh
+git clone --depth=1 --filter=blob:none --sparse https://github.com/bsc-mem/Mess-simulator.git
+cd Mess-simulator
+git sparse-checkout set Standalone
+```
+
+- `--depth=1`: Creates a shallow clone with only the latest commit (no history). This significantly reduces download size and time.
+- `--filter=blob:none`: Uses partial clone to avoid downloading objects until they are needed.
+- `--sparse`: Enables sparse checkout mode.
+- `git sparse-checkout set Standalone`: Specifies that only the `Standalone/` folder should be checked out.
+
+If you need the full commit history, simply omit the `--depth=1` flag.
+
+### Clone the Entire Repository
+
+To clone the entire repository with all components (Standalone and Integrated modes):
+
+```sh
+git clone https://github.com/bsc-mem/Mess-simulator.git
+cd Mess-simulator
+```
+
+If you don't need the full history, add `--depth=1`:
+
+```sh
+git clone --depth=1 https://github.com/bsc-mem/Mess-simulator.git
+cd Mess-simulator
+```
+
+### Add as a Git Submodule
+
+If you want to include the Mess Simulator as part of another Git project (e.g., as a dependency for your research project), you can add it as a submodule:
+
+```sh
+cd your-project
+git submodule add https://github.com/bsc-mem/Mess-simulator.git external/Mess-simulator
+```
+
+This creates a reference to the Mess Simulator repository in the `external/Mess-simulator` directory. To clone a project with its submodules:
+
+```sh
+git clone --recurse-submodules https://github.com/your-username/your-project.git
+```
+
+Or if you've already cloned the project without submodules:
+
+```sh
+git submodule update --init --recursive
+```
+
+If you only need the Standalone folder as a submodule, you can use sparse checkout within the submodule:
+
+```sh
+git submodule add --depth=1 https://github.com/bsc-mem/Mess-simulator.git external/Mess-simulator
+cd external/Mess-simulator
+git sparse-checkout init --cone
+git sparse-checkout set Standalone
+```
 
 ## Citation
 

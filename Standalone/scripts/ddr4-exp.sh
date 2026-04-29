@@ -38,20 +38,24 @@ frequencyCPU=2.1
 # Mess simulation requires three inputs: 
 # 1. address of the input curves
 # 2. pause value which determing the final bandwdith (the lower pause result in higher bandwidth)
-# 3. CPU frequency of our simulation. The higher the CPU frequency, we will issue higher bandwidth with the same pause values. 
-./build/mess_example ./data/skylake-ddr4 20000 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 200 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 100 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 50 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 20 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 10 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 9 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 8 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 7 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 6 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 5 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 4 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 3 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 2 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 1 $frequencyCPU  
-./build/mess_example ./data/skylake-ddr4 0 $frequencyCPU  
+# 3. CPU frequency of our simulation. The higher the CPU frequency, we will issue higher bandwidth with the same pause values.
+# 4. Number of memory channels of the simulated system. Bandwidth values from
+#    the curve file are linearly scaled by `channels / measuredChannels`
+#    (where measuredChannels is read from the JSON file).
+channels=6
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 20000 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 200 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 100 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 50 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 20 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 10 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 9 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 8 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 7 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 6 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 5 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 4 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 3 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 2 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 1 $frequencyCPU $channels 
+./build/mess_example ./data/bw-lat/skylake-ddr4.json 0 $frequencyCPU $channels 

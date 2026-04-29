@@ -33,27 +33,284 @@
 
 #include "mess_mem_ctrl.h"
 
+#include <cstdlib>
+#include <cstring>
+#include <stdexcept>
+#include <utility>
+
 // Custom round function to avoid dependency issues
 static double roundDouble(double d) {
     return std::floor(d + 0.5);
 }
 
+namespace {
+
+/**
+ * @brief A single read-percentage curve as parsed from the JSON file.
+ */
+struct CurveEntry {
+    int readPercentage;                              ///< Read percentage in [0, 100].
+    std::vector<std::pair<double, double>> points;   ///< Bandwidth (MB/s), latency (ns) pairs.
+};
+
+/**
+ * @brief In-memory representation of a curve JSON file.
+ *
+ * Expected schema:
+ * @code
+ *   { "measuredChannels": <int>,
+ *     "curves": { "<read_pct>": [[bw, lat], ...], ... } }
+ * @endcode
+ *
+ * Curves are stored in the order they appear in the file. The number of
+ * curves is determined dynamically by the file contents.
+ */
+struct CurveFile {
+    uint32_t measuredChannels = 0;   ///< Channels the curves were measured on.
+    std::vector<CurveEntry> curves;  ///< All parsed curves, in file order.
+};
+
+/**
+ * @brief Throws a ``std::runtime_error`` describing a JSON parse failure.
+ *
+ * Marked ``[[noreturn]]`` so the compiler can elide fall-through paths in
+ * the parser.
+ *
+ * @param msg Short message describing the parse error.
+ */
+[[noreturn]] static void parseError(const char* msg) {
+    throw std::runtime_error(std::string("JSON parse error: ") + msg);
+}
+
+/**
+ * @brief Advances ``p`` past any ASCII whitespace.
+ *
+ * Avoids the locale-aware ``std::isspace`` overhead by inlining the four
+ * whitespace characters that JSON allows.
+ *
+ * @param p   Cursor into the JSON buffer; updated in place.
+ * @param end One-past-the-end of the JSON buffer.
+ */
+static inline void skipWs(const char*& p, const char* end) {
+    while (p < end) {
+        char c = *p;
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+            ++p;
+        } else {
+            break;
+        }
+    }
+}
+
+/**
+ * @brief Skips whitespace and consumes the expected character or throws.
+ *
+ * @param p   Cursor into the JSON buffer; advanced past the consumed char.
+ * @param end One-past-the-end of the JSON buffer.
+ * @param c   Character expected at the current position.
+ */
+static inline void expectChar(const char*& p, const char* end, char c) {
+    skipWs(p, end);
+    if (p >= end || *p != c) parseError("unexpected character");
+    ++p;
+}
+
+/**
+ * @brief Skips whitespace and reports whether ``c`` is at the cursor.
+ *
+ * Does not consume the character.
+ *
+ * @param p   Cursor into the JSON buffer; advanced past whitespace.
+ * @param end One-past-the-end of the JSON buffer.
+ * @param c   Character to look for at the current position.
+ * @return ``true`` if ``*p == c``, ``false`` otherwise.
+ */
+static inline bool peekChar(const char*& p, const char* end, char c) {
+    skipWs(p, end);
+    return p < end && *p == c;
+}
+
+/**
+ * @brief Reads a JSON string and returns its raw extent inside the buffer.
+ *
+ * Assumes the schema contains no escape sequences (keys are either ASCII
+ * field names or decimal integers, never quoted with backslashes), so no
+ * copy is made.
+ *
+ * @param p      Cursor into the JSON buffer; advanced past the closing quote.
+ * @param end    One-past-the-end of the JSON buffer.
+ * @param outBeg Pointer to the first character inside the quotes.
+ * @param outLen Length of the string in bytes.
+ */
+static inline void readRawString(const char*& p, const char* end,
+                                 const char*& outBeg, size_t& outLen) {
+    expectChar(p, end, '"');
+    outBeg = p;
+    while (p < end && *p != '"') ++p;
+    if (p >= end) parseError("unterminated string");
+    outLen = static_cast<size_t>(p - outBeg);
+    ++p; // consume closing quote
+}
+
+/**
+ * @brief Reads a JSON number using ``strtod`` directly on the buffer.
+ *
+ * The caller guarantees a trailing ``'\0'`` so ``strtod`` always has a
+ * valid terminator. No allocation is performed.
+ *
+ * @param p   Cursor into the JSON buffer; advanced past the number.
+ * @param end One-past-the-end of the JSON buffer.
+ * @return The parsed double value.
+ */
+static inline double readNumber(const char*& p, const char* end) {
+    skipWs(p, end);
+    if (p >= end) parseError("expected number");
+    char* endptr = nullptr;
+    double v = std::strtod(p, &endptr);
+    if (endptr == p) parseError("expected number");
+    p = endptr;
+    return v;
+}
+
+/**
+ * @brief Reads a quoted decimal integer (used for curve keys like "42").
+ *
+ * @param p   Cursor into the JSON buffer; advanced past the closing quote.
+ * @param end One-past-the-end of the JSON buffer.
+ * @return The integer value parsed from inside the quotes.
+ */
+static inline int readQuotedInt(const char*& p, const char* end) {
+    const char* beg;
+    size_t len;
+    readRawString(p, end, beg, len);
+    if (len == 0) parseError("empty integer key");
+    char* endptr = nullptr;
+    long v = std::strtol(beg, &endptr, 10);
+    if (endptr != beg + len) parseError("invalid integer key");
+    return static_cast<int>(v);
+}
+
+/**
+ * @brief Loads and parses a curve JSON file into a ``CurveFile``.
+ *
+ * The file is slurped in a single ``read()`` into a NUL-terminated buffer,
+ * then scanned with raw ``const char*`` pointers. Numbers are parsed with
+ * ``strtod``/``strtol`` directly on the buffer; key dispatch uses
+ * ``memcmp`` against the two known top-level field names.
+ *
+ * @param path Filesystem path to the JSON file.
+ * @return A populated ``CurveFile`` with ``measuredChannels`` and the
+ *         per-read-percentage bandwidth-latency curves.
+ * @throws std::runtime_error If the file cannot be read or parsed, or if
+ *         ``measuredChannels`` is missing or zero.
+ */
+static CurveFile loadCurveFile(const std::string& path) {
+    // Slurp the file in a single read; reserve exact capacity.
+    std::ifstream fh(path, std::ios::binary | std::ios::ate);
+    if (!fh.is_open()) {
+        throw std::runtime_error("Failed to open curve file: " + path);
+    }
+    std::streamsize size = fh.tellg();
+    if (size < 0) {
+        throw std::runtime_error("Failed to size curve file: " + path);
+    }
+    fh.seekg(0, std::ios::beg);
+    // +1 for a trailing NUL so strtod has a guaranteed terminator.
+    std::vector<char> buf(static_cast<size_t>(size) + 1);
+    if (size > 0 && !fh.read(buf.data(), size)) {
+        throw std::runtime_error("Failed to read curve file: " + path);
+    }
+    buf[static_cast<size_t>(size)] = '\0';
+
+    const char* p = buf.data();
+    const char* end = p + static_cast<size_t>(size);
+
+    CurveFile out;
+
+    expectChar(p, end, '{');
+    bool firstField = true;
+    while (!peekChar(p, end, '}')) {
+        if (!firstField) expectChar(p, end, ',');
+        firstField = false;
+
+        const char* keyBeg;
+        size_t keyLen;
+        readRawString(p, end, keyBeg, keyLen);
+        expectChar(p, end, ':');
+
+        if (keyLen == 16 && std::memcmp(keyBeg, "measuredChannels", 16) == 0) {
+            double v = readNumber(p, end);
+            out.measuredChannels = static_cast<uint32_t>(v);
+        } else if (keyLen == 6 && std::memcmp(keyBeg, "curves", 6) == 0) {
+            expectChar(p, end, '{');
+            bool firstCurve = true;
+            while (!peekChar(p, end, '}')) {
+                if (!firstCurve) expectChar(p, end, ',');
+                firstCurve = false;
+
+                int pct = readQuotedInt(p, end);
+                expectChar(p, end, ':');
+                expectChar(p, end, '[');
+
+                if (pct < 0 || pct > 100) {
+                    parseError("read percentage out of range");
+                }
+
+                CurveEntry entry;
+                entry.readPercentage = pct;
+                entry.points.reserve(64);
+
+                bool firstPair = true;
+                while (!peekChar(p, end, ']')) {
+                    if (!firstPair) expectChar(p, end, ',');
+                    firstPair = false;
+                    expectChar(p, end, '[');
+                    double bw = readNumber(p, end);
+                    expectChar(p, end, ',');
+                    double lat = readNumber(p, end);
+                    expectChar(p, end, ']');
+                    entry.points.emplace_back(bw, lat);
+                }
+                expectChar(p, end, ']');
+                out.curves.push_back(std::move(entry));
+            }
+            expectChar(p, end, '}');
+        } else {
+            parseError("unknown top-level key");
+        }
+    }
+    expectChar(p, end, '}');
+
+    if (out.measuredChannels == 0) {
+        throw std::runtime_error(
+            "Curve file is missing a positive 'measuredChannels' field: " + path);
+    }
+    return out;
+}
+
+} // namespace
+
 /**
  * @brief Constructs a MessMemCtrl object, initializing all internal states and
- *        loading bandwidth-latency curves from the specified directory.
+ *        loading bandwidth-latency curves from the specified JSON file.
  *
  * The constructor reads pre-characterized bandwidth-latency curves for various
- * read percentages, converts bandwidth and latency units, and stores them for
- * later use. It also calculates initial lead-off latency and sets up internal
- * variables needed for simulation.
+ * read percentages from a JSON file, converts bandwidth and latency units, and
+ * stores them for later use. Bandwidth values are linearly scaled by
+ * ``channels / measuredChannels`` so curves measured on a system with a different
+ * channel count can still be used.
  *
- * @param _curveAddress Path to the directory containing curve files.
+ * @param _curveAddress  Path to the curve JSON file.
  * @param _curveWindowSize Number of accesses per measurement window.
- * @param frequencyRate CPU frequency in GHz.
+ * @param frequencyRate  CPU frequency in GHz.
+ * @param _channels      Number of memory channels of the simulated system.
  */
 MessMemCtrl::MessMemCtrl(const std::string& _curveAddress,
-                           uint32_t _curveWindowSize, double frequencyRate)
+                           uint32_t _curveWindowSize, double frequencyRate,
+                           uint32_t _channels)
     : curveAddress(_curveAddress),
+      measuredChannels(0),
+      channels(_channels),
       curveWindowSize(_curveWindowSize),
       frequencyCPU(frequencyRate),
       leadOffLatency(100000), // Initialize with a large value; will be updated later
@@ -67,34 +324,43 @@ MessMemCtrl::MessMemCtrl(const std::string& _curveAddress,
       latency(static_cast<uint32_t>(leadOffLatency)),
       overflowFactor(0),
       lastIntReadPercentage(0) {
-    // Load curve data for 101 different read percentages: 0%, 2%, ..., 100%
-    for (uint32_t i = 0; i <= 100; i += 2) {
-        // Generate the file path for the current read percentage
-        std::string fileAddress = curveAddress + "/bwlat_" + std::to_string(i) + ".txt";
-        std::ifstream curveFile(fileAddress);
+    // Load the entire curve file (measuredChannels + curves) from JSON.
+    CurveFile file = loadCurveFile(curveAddress);
+    measuredChannels = file.measuredChannels;
 
-        // Check if the file was successfully opened
-        if (!curveFile.is_open()) {
-            std::cerr << "Failed to open curve file: " << fileAddress << std::endl;
-            continue;
-        }
+    if (file.curves.empty()) {
+        throw std::runtime_error("Curve file contains no curves: " + curveAddress);
+    }
 
-        // Temporary variables to hold the maximum bandwidth and latency for the current curve
+    // Bandwidth scaling factor: curves were measured on `measuredChannels`
+    // channels; linearly rescale to match the simulated system's `channels`.
+    const double bwScale =
+        static_cast<double>(channels) / static_cast<double>(measuredChannels);
+
+    // Load each curve from the JSON file, apply the channel-scaling factor
+    // to bandwidth values, and convert units (MB/s → accesses per cycle,
+    // ns → CPU cycles). The result is stored in `curves_data`, one entry
+    // per curve found in the file.
+    const size_t numCurves = file.curves.size();
+    curves_data.reserve(numCurves);
+    maxBandwidthPerRdRatio.reserve(numCurves);
+    maxLatencyPerRdRatio.reserve(numCurves);
+
+    for (const auto& entry : file.curves) {
         std::vector<std::vector<double>> curve_data;
+        curve_data.reserve(entry.points.size());
         double maxBandwidthTemp = 0;
         double maxLatencyTemp = 0;
 
-        double inputBandwidth, inputLatency;
-
-        // Read the curve data from the file
-        while (curveFile >> inputBandwidth >> inputLatency) {
-            // Convert bandwidth from MB/s to accesses per cycle
-            // Assuming each access is 64 bytes
+        for (const auto& pair : entry.points) {
+            // Apply per-channel bandwidth scaling first (still in MB/s),
+            // then convert from MB/s to accesses per cycle, assuming 64-byte accesses.
+            double inputBandwidth = pair.first * bwScale;
             inputBandwidth = (inputBandwidth / 64) / (frequencyCPU * 1000);
 
             // Adjust input latency based on the CPU frequency
             // The input latency is in ns; convert it to the CPU's cycles
-            inputLatency *= frequencyCPU;
+            double inputLatency = pair.second * frequencyCPU;
 
             // Store the data point (bandwidth, latency)
             curve_data.push_back({inputBandwidth, inputLatency});
@@ -109,24 +375,63 @@ MessMemCtrl::MessMemCtrl(const std::string& _curveAddress,
             if (maxBandwidth < inputBandwidth)
                 maxBandwidth = inputBandwidth;
 
-            // Update maximum latency and bandwidth for the current read percentage
+            // Update maximum latency and bandwidth for the current curve
             if (maxLatencyTemp < inputLatency)
                 maxLatencyTemp = inputLatency;
             if (maxBandwidthTemp < inputBandwidth)
                 maxBandwidthTemp = inputBandwidth;
         }
 
-        // Store the maximum bandwidth and latency for the current read percentage
         maxBandwidthPerRdRatio.push_back(maxBandwidthTemp);
         maxLatencyPerRdRatio.push_back(maxLatencyTemp);
-        curves_data.push_back(curve_data);
+        curves_data.push_back(std::move(curve_data));
+    }
 
-        // set initial latency to the lead-off latency
-        lastEstimatedLatency = leadOffLatency;
-        latency = static_cast<uint32_t>(leadOffLatency);
+    // set initial latency to the lead-off latency
+    lastEstimatedLatency = leadOffLatency;
+    latency = static_cast<uint32_t>(leadOffLatency);
 
-        // Close the curve file
-        curveFile.close();
+    // ------------------------------------------------------------------
+    // Phase 2: build `pctToCurveIdx` so the hot path can map any integer
+    // read percentage in [0, 100] to a curve index with a single load.
+    //
+    // The table is filled by:
+    //   1. Marking each pct that has its own curve in the JSON.
+    //   2. A left-to-right sweep that records the nearest pct seen so far
+    //      on the left side of every slot.
+    //   3. A right-to-left sweep doing the same for the right side.
+    //   4. For each slot, picking whichever neighbour is closer (ties go
+    //      to the lower pct, matching the prior round-half-down behaviour).
+    // ------------------------------------------------------------------
+    constexpr int kMaxPct = 100;
+    std::vector<int32_t> ownerByPct(kMaxPct + 1, -1);
+    for (size_t i = 0; i < file.curves.size(); ++i) {
+        ownerByPct[file.curves[i].readPercentage] = static_cast<int32_t>(i);
+    }
+
+    std::vector<int> nearestLeft(kMaxPct + 1, -1);
+    std::vector<int> nearestRight(kMaxPct + 1, -1);
+    int last = -1;
+    for (int p = 0; p <= kMaxPct; ++p) {
+        if (ownerByPct[p] >= 0) last = p;
+        nearestLeft[p] = last;
+    }
+    last = -1;
+    for (int p = kMaxPct; p >= 0; --p) {
+        if (ownerByPct[p] >= 0) last = p;
+        nearestRight[p] = last;
+    }
+
+    pctToCurveIdx.assign(kMaxPct + 1, 0);
+    for (int p = 0; p <= kMaxPct; ++p) {
+        const int lp = nearestLeft[p];
+        const int rp = nearestRight[p];
+        int chosen;
+        if (lp < 0)      chosen = rp;
+        else if (rp < 0) chosen = lp;
+        else             chosen = (p - lp <= rp - p) ? lp : rp;
+        // chosen >= 0 here because file.curves is non-empty.
+        pctToCurveIdx[p] = static_cast<uint32_t>(ownerByPct[chosen]);
     }
 }
 
@@ -141,6 +446,22 @@ MessMemCtrl::MessMemCtrl(const std::string& _curveAddress,
 uint32_t MessMemCtrl::getLeadOffLatency() {
     // Return the minimum achievable latency for memory access
     return static_cast<uint32_t>(leadOffLatency);
+}
+
+
+/**
+ * @brief Retrieves the peak bandwidth of the loaded curves, in GB/s.
+ *
+ * `maxBandwidth` is stored internally in accesses-per-cycle, after the
+ * per-channel scaling factor has been applied at construction time. The
+ * inverse of the conversion done in the constructor is:
+ *
+ *     accesses/cycle * 64 bytes * frequencyCPU [GHz] = GB/s
+ *
+ * @return Peak bandwidth in GB/s, already scaled to the simulated channel count.
+ */
+double MessMemCtrl::getPeakBandwidthGBs() const {
+    return maxBandwidth * 64.0 * frequencyCPU;
 }
 
 
@@ -160,16 +481,15 @@ uint32_t MessMemCtrl::getLeadOffLatency() {
 uint32_t MessMemCtrl::searchForLatencyOnCurve(double bandwidth, double readPercentage) {
     const double convergeSpeed = 0.05; // Convergence factor for PID-like controller
 
-    // Convert read percentage to an even integer between 0 and 100
-    uint32_t intReadPercentage = static_cast<uint32_t>(roundDouble(100 * readPercentage * 0.5)) * 2;
+    // Convert read percentage to an integer in [0, 100].
+    int rp = static_cast<int>(roundDouble(100 * readPercentage));
+    if (rp < 0)        rp = 0;
+    else if (rp > 100) rp = 100;
+    const uint32_t intReadPercentage = static_cast<uint32_t>(rp);
     lastIntReadPercentage = intReadPercentage;
 
-    // Ensure the read percentage is within valid bounds
-    assert(intReadPercentage <= 100);
-    assert(intReadPercentage % 2 == 0);
-
-    // Determine the index for the curves_data based on read percentage
-    uint32_t curveDataIndex = intReadPercentage / 2;
+    // O(1) lookup of the matching (or nearest) curve produced by the loader.
+    const uint32_t curveDataIndex = pctToCurveIdx[intReadPercentage];
 
     // Initialize estimated data points
     double finalLatency = leadOffLatency;
@@ -350,8 +670,8 @@ uint64_t MessMemCtrl::access(uint64_t accessCycle, bool isWrite) {
  *         otherwise 0.
  */
 uint64_t MessMemCtrl::GetQsMemLoadCycleLimit() {
-    // Calculate the index for the current read percentage
-    uint32_t curveDataIndex = lastIntReadPercentage / 2;
+    // O(1) lookup of the curve index for the last read percentage observed.
+    uint32_t curveDataIndex = pctToCurveIdx[lastIntReadPercentage];
 
     // Determine if there's a latency penalty due to bandwidth exceeding the maximum
     if (latency > static_cast<uint32_t>(maxLatencyPerRdRatio[curveDataIndex]))

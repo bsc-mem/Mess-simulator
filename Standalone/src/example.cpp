@@ -57,7 +57,8 @@ uint64_t simulateCycle(uint64_t currentCycle, uint64_t pause) {
  * @brief Prints usage instructions for the program.
  */
 void printUsage() {
-    std::cerr << "Usage: ./example <curve_path> <pause_value> <cpu_frequency>" << std::endl;
+    std::cerr << "Usage: ./example <curve_json_path> <pause_value> <cpu_frequency> <channels>"
+              << std::endl;
 }
 
 /**
@@ -73,25 +74,30 @@ void printUsage() {
  */
 int main(int argc, char* argv[]) {
     // Validate argument count
-    if (argc != 4) {
+    if (argc != 5) {
         printUsage();
         return 1;
     }
 
     try {
         // Parse command-line arguments
-        std::string curvePath = argv[1];               // Path to bandwidth-latency curve file
+        std::string curvePath = argv[1];               // Path to bandwidth-latency curve JSON file
         int pauseValue = std::stoi(argv[2]);           // Pause between operations (controls bandwidth)
         float cpuFrequency = std::stof(argv[3]);       // CPU frequency for the simulation
+        int channels = std::stoi(argv[4]);             // Number of memory channels of the simulated system
 
         // Validate pause value
         if (pauseValue < 0) {
             throw std::invalid_argument("Pause value must be non-negative.");
         }
+        if (channels <= 0) {
+            throw std::invalid_argument("Channels must be a positive integer.");
+        }
 
         // Create an instance of the memory controller
         // MessMemCtrl handles memory latency and bandwidth computations based on input curves
-        std::unique_ptr<MessMemCtrl> memoryController(new MessMemCtrl(curvePath, 1000, cpuFrequency));
+        std::unique_ptr<MessMemCtrl> memoryController(new MessMemCtrl(
+            curvePath, 1000, cpuFrequency, static_cast<uint32_t>(channels)));
 
         uint32_t latency = 0;    // Variable to store the latency of memory operations
         uint64_t cycle = 0;      // Simulated clock cycle count
@@ -106,11 +112,22 @@ int main(int argc, char* argv[]) {
             cycle = simulateCycle(cycle, pauseValue); // Increment the simulated clock cycle
         }
 
-        // Output the results
-        if (pauseValue != 0) {
-            std::cout << std::fixed << std::setprecision(2);
-            std::cout << (DEFAULT_INNER_LOOP_SIZE * cpuFrequency * 64 / pauseValue) << " GB/s, " << latency / cpuFrequency << " ns"  << std::endl;
-        }
+        // Output the results.
+        //
+        // For a non-zero pause, the issued bandwidth is fully determined by
+        // the issue rate `inner_loop * f * 64 / pause`. For pause = 0 the
+        // formula is undefined ("issue as fast as possible"), so we report
+        // the peak bandwidth that the simulated memory subsystem can deliver,
+        // which already reflects the per-channel scaling applied to the
+        // input curves.
+        std::cout << std::fixed << std::setprecision(2);
+
+        pauseValue = (pauseValue < 1) ? 1 : pauseValue;
+
+        const double issuedBandwidth = DEFAULT_INNER_LOOP_SIZE * cpuFrequency * 64.0 / pauseValue;
+
+        std::cout << issuedBandwidth << " GB/s, "
+                  << latency / cpuFrequency << " ns" << std::endl;
     } catch (const std::exception& ex) {
         // Catch and display any runtime errors
         std::cerr << "Error: " << ex.what() << std::endl;
