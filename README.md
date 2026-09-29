@@ -13,7 +13,7 @@
 
 The Mess Simulator is an analytical memory model that utilizes bandwidth-latency curves to simulate memory system performance. By matching its behavior to input bandwidth--latency curves, it provides a highly customizable and accurate approach for simulating diverse memory systems. The input curves can either be:
 
-- **Experimentally derived:** Obtained by running the [Mess Benchmark](https://github.com/bsc-mem/Mess-benchmark) on actual hardware.
+- **Experimentally derived:** Obtained by running the [Mess Benchmark](https://github.com/bsc-mem/Mess) on actual hardware.
 - **Manufacturer-supplied:** Provided by memory manufacturers based on detailed RTL simulations.
 
 The Mess Simulator employs a proportional–integral (PI) controller mechanism, derived from classical control theory, to dynamically align its output with the input bandwidth--latency curves. This approach ensures realistic simulation of memory systems for varying workloads and system configurations.
@@ -175,7 +175,7 @@ If you find this simulator useful, please cite the following paper presented at 
 1. Clone the repository:
 
 ```sh
-git clone https://github.com/your-repository/Mess-simulator.git
+git clone https://github.com/bsc-mem/Mess-simulator.git
 ```
 
 2. Navigate to the desired mode:

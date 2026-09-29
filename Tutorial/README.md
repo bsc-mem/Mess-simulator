@@ -29,7 +29,7 @@ Given accurate input curves, Mess can provide **highly accurate memory system pe
 
 ## Converting Curves from Mess Benchmark to Mess Simulator Input
 
-To convert benchmark-generated curves into input for the simulator:
+Use the current [Mess benchmark](https://github.com/bsc-mem/Mess) to generate bandwidth–latency curves on your hardware. To convert benchmark-generated curves into input for the simulator:
 
 1. Define the **write-allocate policy** in the cache system (load/store vs. read/write percentage).  
 2. Relate **load-to-use latency** (from the core) to **memory access response time**.

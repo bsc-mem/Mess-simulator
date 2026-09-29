@@ -88,7 +88,7 @@ The Mess simulator requires several input parameters to model memory behavior ac
 This directory contains measured memory **bandwidth-latency curves** for various memory technologies and CPUs, such as DDR4, DDR5, HBM2, and CXL. These curves serve as input to the simulator.
 
 - The `data/` directory is continuously updated with new curves.  
-- If you wish to create your own curves, refer to **[Mess Benchmark](https://github.com/bsc-mem/Mess-benchmark)** to measure them directly on your hardware.
+- If you wish to create your own curves, refer to **[Mess Benchmark](https://github.com/bsc-mem/Mess)** to measure them directly on your hardware.
 
 #### ```scripts/``` 
 This folder contains pre-defined scripts to run experiments for various memory configurations. 
